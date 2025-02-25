@@ -134,8 +134,8 @@ class PostgresDataManager:
         query = """
             WITH match_ratings AS (
                 SELECT 
-                    date,
-                    time,
+                    date::date as date,
+                    time::time as time,
                     -- Convert ratings to numeric values with explicit casting
                     CASE boldholder 
                         WHEN 'A' THEN 4.0 
@@ -162,6 +162,7 @@ class PostgresDataManager:
                         WHEN 'D' THEN 1.0 
                     END::numeric as stottespiller_val
                 FROM matches
+                WHERE date IS NOT NULL  -- Only include rows with actual dates
             ),
             match_averages AS (
                 SELECT 
@@ -178,12 +179,13 @@ class PostgresDataManager:
             )
             SELECT *
             FROM match_averages
+            WHERE date IS NOT NULL  -- Extra safety check
             ORDER BY date, time
         """
         params = []
 
         if start_date:
-            query = f"{query} WHERE date >= %s"
+            query = f"{query} AND date >= %s"
             params.append(start_date)
         if end_date:
             query += " AND date <= %s" if start_date else " WHERE date <= %s"

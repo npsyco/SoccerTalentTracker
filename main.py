@@ -401,7 +401,14 @@ def main():
                     fig = viz.plot_team_all_categories(team_data)
                 else:
                     fig = viz.plot_team_single_category(team_data, category)
-                st.plotly_chart(fig)
+                st.plotly_chart(fig, config={
+                    'displayModeBar': False,  # Hide the modebar completely
+                    'scrollZoom': False,      # Disable scroll zoom
+                    'doubleClick': False,     # Disable double click actions
+                    'showTips': False,        # Disable hover tips
+                    'displaylogo': False,     # Hide Plotly logo
+                    'responsive': True        # Make the plot responsive to window size
+                }, use_container_width=True)  # Use full container width
             else:
                 st.info("Ingen holddata tilgængelig")
 

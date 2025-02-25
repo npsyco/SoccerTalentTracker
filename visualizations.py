@@ -160,31 +160,18 @@ class Visualizer:
         x_labels = []
 
         # Convert tuple index to datetime strings
-        dates = []
         for idx in data.index:
             if isinstance(idx, tuple) and len(idx) == 2:
                 date, time = idx
                 if time:
-                    dt = pd.Timestamp.combine(date, time)
+                    x_labels.append(f"{date}\n{time}")
                 else:
-                    dt = pd.Timestamp(date)
-                dates.append(dt.strftime('%Y-%m-%d'))
+                    x_labels.append(str(date))
             else:
-                dt = pd.Timestamp(idx)
-                dates.append(dt.strftime('%Y-%m-%d'))
+                x_labels.append(str(idx))
 
-        date_counts = pd.Series(dates).value_counts()
-
-        for i, idx in enumerate(data.index):
-            if isinstance(idx, tuple) and len(idx) == 2:
-                date, time = idx
-                if time and date_counts[dates[i]] > 1:
-                    dt = pd.Timestamp.combine(date, time)
-                    x_labels.append(f"{dt.strftime('%Y-%m-%d')}\n{dt.strftime('%H:%M')}")
-                else:
-                    x_labels.append(dates[i])
-            else:
-                x_labels.append(dates[i])
+        if not x_labels:  # If no valid dates, return empty figure
+            return fig
 
         # Add letter grade regions
         regions = [
@@ -227,7 +214,13 @@ class Visualizer:
                 showgrid=False
             ),
             height=500,
-            showlegend=True
+            showlegend=True,
+            margin=dict(
+                l=50,    # left margin
+                r=20,    # right margin
+                t=100,   # top margin for title
+                b=50,    # bottom margin
+            )
         )
 
         return fig
@@ -238,33 +231,18 @@ class Visualizer:
 
         # Format x-axis labels
         x_labels = []
-        dates = []
-
-        # Convert tuple index to datetime strings
         for idx in data.index:
             if isinstance(idx, tuple) and len(idx) == 2:
                 date, time = idx
                 if time:
-                    dt = pd.Timestamp.combine(date, time)
+                    x_labels.append(f"{date}\n{time}")
                 else:
-                    dt = pd.Timestamp(date)
-                dates.append(dt.strftime('%Y-%m-%d'))
+                    x_labels.append(str(date))
             else:
-                dt = pd.Timestamp(idx)
-                dates.append(dt.strftime('%Y-%m-%d'))
+                x_labels.append(str(idx))
 
-        date_counts = pd.Series(dates).value_counts()
-
-        for i, idx in enumerate(data.index):
-            if isinstance(idx, tuple) and len(idx) == 2:
-                date, time = idx
-                if time and date_counts[dates[i]] > 1:
-                    dt = pd.Timestamp.combine(date, time)
-                    x_labels.append(f"{dt.strftime('%Y-%m-%d')}\n{dt.strftime('%H:%M')}")
-                else:
-                    x_labels.append(dates[i])
-            else:
-                x_labels.append(dates[i])
+        if not x_labels:  # If no valid dates, return empty figure
+            return fig
 
         # Add letter grade regions first (so they appear behind the lines)
         regions = [
@@ -308,7 +286,13 @@ class Visualizer:
                 showgrid=False
             ),
             height=500,
-            showlegend=True
+            showlegend=True,
+            margin=dict(
+                l=50,    # left margin
+                r=20,    # right margin
+                t=100,   # top margin for title
+                b=50,    # bottom margin
+            )
         )
 
         return fig
