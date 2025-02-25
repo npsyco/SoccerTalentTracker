@@ -418,7 +418,14 @@ def main():
 
                     if player_data_dict:
                         fig = viz.plot_player_comparison(player_data_dict)
-                        st.plotly_chart(fig)
+                        st.plotly_chart(fig, config={
+                            'displayModeBar': False,  # Hide the modebar completely
+                            'scrollZoom': False,      # Disable scroll zoom
+                            'doubleClick': False,     # Disable double click actions
+                            'showTips': False,        # Disable hover tips
+                            'displaylogo': False,     # Hide Plotly logo
+                            'responsive': True        # Make the plot responsive to window size
+                        })
                     else:
                         st.info("Ingen data tilgængelig for de valgte spillere")
                 else:

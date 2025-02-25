@@ -393,9 +393,7 @@ class Visualizer:
                 t=100,   # top margin for title and legend
                 b=50,    # bottom margin
                 pad=4    # padding between subplots
-            ),
-            # Disable hover interactions
-            hovermode=False
+            )
         )
 
         # Update all axes with strict configuration
@@ -426,14 +424,4 @@ class Visualizer:
                 col=1
             )
 
-        # Return figure with config to disable all modebar buttons
-        return fig.update(layout_showlegend=True).show(
-            config={
-                'displayModeBar': False,  # Hide the modebar completely
-                'scrollZoom': False,      # Disable scroll zoom
-                'doubleClick': False,     # Disable double click actions
-                'showTips': False,        # Disable hover tips
-                'displaylogo': False,     # Hide Plotly logo
-                'responsive': True        # Make the plot responsive to window size
-            }
-        )
+        return fig
