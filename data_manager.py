@@ -18,7 +18,7 @@ class DataManager:
             pd.DataFrame(columns=['Name', 'Position']).to_csv(self.players_file, index=False)
 
         if not os.path.exists(self.matches_file):
-            columns = ['Date', 'Opponent', 'Player', 'Technical', 'Tactical', 'Physical', 'Mental', 'Boldholder', 'Medspiller', 'Presspiller', 'Støttespiller']
+            columns = ['Date', 'Opponent', 'Player', 'Boldholder', 'Medspiller', 'Presspiller', 'Støttespiller']
             pd.DataFrame(columns=columns).to_csv(self.matches_file, index=False)
 
     def add_player(self, name, position):
@@ -121,9 +121,15 @@ class DataManager:
                     categories=self.rating_order,
                     ordered=True
                 )
+                # Get value counts for the category
                 ratings = date_data[category].value_counts()
                 # If there's a tie, take the lower rating
-                date_ratings[category] = ratings.index[0] if not ratings.empty else 'D'
+                if not ratings.empty:
+                    max_count = ratings.max()
+                    most_common = ratings[ratings == max_count].index
+                    date_ratings[category] = sorted(most_common, reverse=True)[0]
+                else:
+                    date_ratings[category] = 'D'
 
             # Add to team performance dataframe
             team_performance = pd.concat([
