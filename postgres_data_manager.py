@@ -135,40 +135,44 @@ class PostgresDataManager:
     def get_team_performance(self, start_date=None, end_date=None):
         """Get team's overall performance history within date range"""
         query = """
-            WITH daily_ratings AS (
+            WITH match_averages AS (
                 SELECT 
                     date,
                     time,
-                    AVG(CASE boldholder 
-                        WHEN 'A' THEN 4 
-                        WHEN 'B' THEN 3 
-                        WHEN 'C' THEN 2 
-                        WHEN 'D' THEN 1 
-                    END) as boldholder_avg,
-                    AVG(CASE medspiller 
-                        WHEN 'A' THEN 4 
-                        WHEN 'B' THEN 3 
-                        WHEN 'C' THEN 2 
-                        WHEN 'D' THEN 1 
-                    END) as medspiller_avg,
-                    AVG(CASE presspiller 
-                        WHEN 'A' THEN 4 
-                        WHEN 'B' THEN 3 
-                        WHEN 'C' THEN 2 
-                        WHEN 'D' THEN 1 
-                    END) as presspiller_avg,
-                    AVG(CASE stottespiller 
-                        WHEN 'A' THEN 4 
-                        WHEN 'B' THEN 3 
-                        WHEN 'C' THEN 2 
-                        WHEN 'D' THEN 1 
-                    END) as stottespiller_avg
+                    -- Calculate averages with explicit casting of ratings to numeric values
+                    ROUND(AVG(CASE boldholder 
+                        WHEN 'A' THEN 4.0 
+                        WHEN 'B' THEN 3.0 
+                        WHEN 'C' THEN 2.0 
+                        WHEN 'D' THEN 1.0 
+                    END)::numeric, 2) as boldholder_avg,
+                    ROUND(AVG(CASE medspiller 
+                        WHEN 'A' THEN 4.0 
+                        WHEN 'B' THEN 3.0 
+                        WHEN 'C' THEN 2.0 
+                        WHEN 'D' THEN 1.0 
+                    END)::numeric, 2) as medspiller_avg,
+                    ROUND(AVG(CASE presspiller 
+                        WHEN 'A' THEN 4.0 
+                        WHEN 'B' THEN 3.0 
+                        WHEN 'C' THEN 2.0 
+                        WHEN 'D' THEN 1.0 
+                    END)::numeric, 2) as presspiller_avg,
+                    ROUND(AVG(CASE stottespiller 
+                        WHEN 'A' THEN 4.0 
+                        WHEN 'B' THEN 3.0 
+                        WHEN 'C' THEN 2.0 
+                        WHEN 'D' THEN 1.0 
+                    END)::numeric, 2) as stottespiller_avg,
+                    COUNT(*) as player_count
                 FROM matches
                 GROUP BY date, time
+                HAVING COUNT(*) > 0  -- Only include matches with players
             )
             SELECT 
                 date,
                 time,
+                -- Convert averages back to letter grades with more granular thresholds
                 CASE 
                     WHEN boldholder_avg >= 3.5 THEN 'A'
                     WHEN boldholder_avg >= 2.5 THEN 'B'
@@ -193,7 +197,7 @@ class PostgresDataManager:
                     WHEN stottespiller_avg >= 1.5 THEN 'C'
                     ELSE 'D'
                 END as "Støttespiller"
-            FROM daily_ratings
+            FROM match_averages
         """
         params = []
 
