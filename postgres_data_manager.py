@@ -90,8 +90,8 @@ class PostgresDataManager:
         """Get performance history for a specific player within date range"""
         query = """
             SELECT 
-                m.date, 
-                m.time,
+                m.date::date as date, 
+                m.time::time as time,
                 m.opponent,
                 m.boldholder as "Boldholder",
                 m.medspiller as "Medspiller",
@@ -116,17 +116,14 @@ class PostgresDataManager:
             with psycopg2.connect(self.conn_string) as conn:
                 df = pd.read_sql_query(query, conn, params=params)
                 if not df.empty:
-                    df['Date'] = pd.to_datetime(df['date'])
+                    # Ensure date and time are properly formatted
+                    df['Date'] = pd.to_datetime(df['date']).dt.date
                     df['Time'] = pd.to_datetime(df['time'], format='%H:%M:%S').dt.time
                     # Drop the original date/time columns
                     df = df.drop(['date', 'time'], axis=1)
-                    # Ensure proper categorical ordering for rating columns
+                    # Convert rating columns to numeric values
                     for category in ['Boldholder', 'Medspiller', 'Presspiller', 'Støttespiller']:
-                        df[category] = pd.Categorical(
-                            df[category],
-                            categories=self.rating_order,
-                            ordered=True
-                        )
+                        df[category] = df[category].map(self.rating_map)
                 return df
         except psycopg2.Error as e:
             print(f"Error getting player performance: {e}")

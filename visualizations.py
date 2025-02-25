@@ -303,7 +303,7 @@ class Visualizer:
         """Plot comparison between multiple players"""
         categories = ['Boldholder', 'Medspiller', 'Presspiller', 'Støttespiller']
 
-        # Calculate optimal height based on number of categories and screen size
+        # Calculate optimal height based on number of categories
         height_per_subplot = 250  # pixels per subplot
         total_height = height_per_subplot * len(categories)
 
@@ -311,8 +311,7 @@ class Visualizer:
             rows=len(categories),
             cols=1,
             subplot_titles=categories,
-            vertical_spacing=0.1,  # Increased spacing for better readability
-            row_heights=[1] * len(categories)  # Equal height for all subplots
+            vertical_spacing=0.1
         )
 
         # Add letter grade regions to each subplot
@@ -324,42 +323,40 @@ class Visualizer:
         ]
 
         # Track all x values to update region boundaries
-        all_dates = []
+        all_dates = set()
 
-        # First pass: collect all dates
-        for player_name, data in player_data_dict.items():
-            dates = data['Date'].dt.strftime('%Y-%m-%d').values
-            all_dates.extend(dates)
+        # First pass: collect all unique dates
+        for data in player_data_dict.values():
+            all_dates.update(data['Date'])
 
-        # Sort unique dates for x-axis range
-        all_dates = sorted(set(all_dates))
+        # Sort dates chronologically
+        all_dates = sorted(all_dates)
+        if not all_dates:
+            return fig  # Return empty figure if no dates
 
         # Add grade regions to each subplot
         for idx, category in enumerate(categories, 1):
             for grade, y0, y1, color in regions:
-                if all_dates:  # Only add if we have dates
-                    fig.add_shape(
-                        type="rect",
-                        x0=all_dates[0],
-                        x1=all_dates[-1],
-                        y0=y0,
-                        y1=y1,
-                        fillcolor=color,
-                        opacity=0.2,
-                        layer="below",
-                        line_width=0,
-                        row=idx,
-                        col=1
-                    )
+                fig.add_shape(
+                    type="rect",
+                    x0=all_dates[0],
+                    x1=all_dates[-1],
+                    y0=y0,
+                    y1=y1,
+                    fillcolor=color,
+                    opacity=0.2,
+                    layer="below",
+                    line_width=0,
+                    row=idx,
+                    col=1
+                )
 
         # Add traces for each player
         for player_name, data in player_data_dict.items():
-            dates = data['Date'].dt.strftime('%Y-%m-%d').values
-
             for idx, category in enumerate(categories, 1):
                 fig.add_trace(
                     go.Scatter(
-                        x=dates,
+                        x=data['Date'],
                         y=data[category],
                         name=player_name,
                         mode='lines+markers',
@@ -371,13 +368,10 @@ class Visualizer:
                     col=1
                 )
 
-        # Update layout with strict configuration
+        # Update layout
         fig.update_layout(
             height=total_height,
-            title=dict(
-                text="Spillersammenligning over tid",
-                y=0.95  # Move title up slightly
-            ),
+            title="Spillersammenligning over tid",
             showlegend=True,
             legend=dict(
                 orientation="h",
@@ -393,7 +387,9 @@ class Visualizer:
                 t=100,   # top margin for title and legend
                 b=50,    # bottom margin
                 pad=4    # padding between subplots
-            )
+            ),
+            # Ensure plots use full width
+            width=None  # Let Streamlit control the width
         )
 
         # Update all axes with strict configuration
@@ -405,7 +401,6 @@ class Visualizer:
                     tickvals=[1, 2, 3, 4],
                     range=[0.5, 4.5],
                     showgrid=False,
-                    fixedrange=True,  # Disable zooming
                     constrain='domain'  # Ensure axis stays within its domain
                 ),
                 row=idx,
@@ -416,9 +411,9 @@ class Visualizer:
             fig.update_xaxes(
                 dict(
                     showgrid=False,
-                    fixedrange=True,  # Disable zooming
+                    dtick="D1",  # Show all dates
                     constrain='domain',  # Ensure axis stays within its domain
-                    rangeslider=dict(visible=False),  # Remove range slider if present
+                    automargin=True  # Allow margin adjustment for labels
                 ),
                 row=idx,
                 col=1

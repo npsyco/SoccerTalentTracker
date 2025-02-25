@@ -425,7 +425,7 @@ def main():
                             'showTips': False,        # Disable hover tips
                             'displaylogo': False,     # Hide Plotly logo
                             'responsive': True        # Make the plot responsive to window size
-                        })
+                        }, use_container_width=True)  # Use full container width
                     else:
                         st.info("Ingen data tilgængelig for de valgte spillere")
                 else:
