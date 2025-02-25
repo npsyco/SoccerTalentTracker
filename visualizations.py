@@ -34,7 +34,7 @@ class Visualizer:
             y=data[category],
             mode='lines+markers',
             name=category,
-            line=dict(color=self.colors[category], width=2),
+            line=dict(color=self.colors[category], width=2, shape='spline'),  # Make lines curved
             marker=dict(size=8)
         ))
 
@@ -77,7 +77,7 @@ class Visualizer:
                 y=data[category],
                 mode='lines+markers',
                 name=category,
-                line=dict(color=self.colors[category], width=2),
+                line=dict(color=self.colors[category], width=2, shape='spline'),  # Make lines curved
                 marker=dict(size=8)
             ))
 
@@ -102,24 +102,30 @@ class Visualizer:
         """Plot single category performance over time for the team"""
         fig = go.Figure()
 
-        # Ensure data is properly categorical
-        data[category] = pd.Categorical(data[category], 
-                                      categories=self.rating_order,
-                                      ordered=True)
+        # Format x-axis labels
+        x_labels = []
+        dates = [pd.Timestamp(date).strftime('%Y-%m-%d') for date in data.index]
+        date_counts = pd.Series(dates).value_counts()
+
+        for i, date in enumerate(dates):
+            if date_counts[date] > 1:
+                x_labels.append(f"{date}\n{data.index[i].strftime('%H:%M')}")
+            else:
+                x_labels.append(date)
 
         fig.add_trace(go.Scatter(
-            x=data.index,
+            x=x_labels,
             y=data[category],
             mode='lines+markers',
             name=category,
-            line=dict(color=self.colors[category], width=2),
+            line=dict(color=self.colors[category], width=2, shape='spline'),  # Make lines curved
             marker=dict(size=8)
         ))
 
         fig.update_layout(
             title=f"Hold {category} udvikling over tid",
             xaxis_title="Dato",
-            yaxis_title="Gennemsnit Vurdering",
+            yaxis_title="Holdvurdering",
             yaxis=dict(
                 ticktext=self.rating_order,
                 tickvals=self.rating_order,
@@ -137,24 +143,31 @@ class Visualizer:
         """Plot all categories performance over time for the team"""
         fig = go.Figure()
 
-        # Convert all categories to proper categorical type
+        # Format x-axis labels
+        x_labels = []
+        dates = [pd.Timestamp(date).strftime('%Y-%m-%d') for date in data.index]
+        date_counts = pd.Series(dates).value_counts()
+
+        for i, date in enumerate(dates):
+            if date_counts[date] > 1:
+                x_labels.append(f"{date}\n{data.index[i].strftime('%H:%M')}")
+            else:
+                x_labels.append(date)
+
         for category in ['Boldholder', 'Medspiller', 'Presspiller', 'Støttespiller']:
-            data[category] = pd.Categorical(data[category], 
-                                          categories=self.rating_order,
-                                          ordered=True)
             fig.add_trace(go.Scatter(
-                x=data.index,
+                x=x_labels,
                 y=data[category],
                 mode='lines+markers',
                 name=category,
-                line=dict(color=self.colors[category], width=2),
+                line=dict(color=self.colors[category], width=2, shape='spline'),  # Make lines curved
                 marker=dict(size=8)
             ))
 
         fig.update_layout(
             title="Hold udvikling over tid",
             xaxis_title="Dato",
-            yaxis_title="Gennemsnit Vurdering",
+            yaxis_title="Holdvurdering",
             yaxis=dict(
                 ticktext=self.rating_order,
                 tickvals=self.rating_order,
