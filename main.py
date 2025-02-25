@@ -226,15 +226,6 @@ def main():
 
             team_data = dm.get_team_performance(start_date, end_date)
             if not team_data.empty:
-                # Debug: Display raw data
-                st.write("Debug: Team Performance Data")
-                st.write("Raw data shape:", team_data.shape)
-                st.write("Available ratings:", team_data.nunique())
-                st.write("Raw match data before processing:")
-                matches_df = pd.read_csv('data/matches.csv')
-                st.dataframe(matches_df)
-                st.dataframe(team_data)
-
                 if category == "Alle roller":
                     fig = viz.plot_team_all_categories(team_data)
                 else:

@@ -17,13 +17,20 @@ class Visualizer:
         """Plot single category performance over time for a player"""
         fig = go.Figure()
 
-        # Convert ratings to categorical type with proper ordering
-        data[category] = pd.Categorical(data[category], 
-                                      categories=self.rating_order,
-                                      ordered=True)
+        # Format x-axis labels to include time when multiple matches on same date
+        x_labels = []
+        dates = data['Date'].dt.strftime('%Y-%m-%d').values
+        for i, date in enumerate(dates):
+            if 'Time' in data.columns and not pd.isna(data['Time'].iloc[i]):
+                if len(data[data['Date'].dt.strftime('%Y-%m-%d') == date]) > 1:
+                    x_labels.append(f"{date}\n{data['Time'].iloc[i]}")
+                else:
+                    x_labels.append(date)
+            else:
+                x_labels.append(date)
 
         fig.add_trace(go.Scatter(
-            x=data['Date'],
+            x=x_labels,
             y=data[category],
             mode='lines+markers',
             name=category,
@@ -52,13 +59,21 @@ class Visualizer:
         """Plot all categories performance over time for a player"""
         fig = go.Figure()
 
-        # Convert all rating columns to categorical
+        # Format x-axis labels
+        x_labels = []
+        dates = data['Date'].dt.strftime('%Y-%m-%d').values
+        for i, date in enumerate(dates):
+            if 'Time' in data.columns and not pd.isna(data['Time'].iloc[i]):
+                if len(data[data['Date'].dt.strftime('%Y-%m-%d') == date]) > 1:
+                    x_labels.append(f"{date}\n{data['Time'].iloc[i]}")
+                else:
+                    x_labels.append(date)
+            else:
+                x_labels.append(date)
+
         for category in ['Boldholder', 'Medspiller', 'Presspiller', 'Støttespiller']:
-            data[category] = pd.Categorical(data[category], 
-                                          categories=self.rating_order,
-                                          ordered=True)
             fig.add_trace(go.Scatter(
-                x=data['Date'],
+                x=x_labels,
                 y=data[category],
                 mode='lines+markers',
                 name=category,

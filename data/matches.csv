@@ -1,7 +1,26 @@
-Date,Opponent,Player,Boldholder,Medspiller,Presspiller,Støttespiller
-2025-02-25,Test Opponent,test1,A,B,C,D
-2025-02-25,Test Opponent,test2,B,A,D,C
-2025-02-25,Test Opponent,test3,C,D,A,B
-2025-02-26,Another Team,test1,D,C,B,A
-2025-02-26,Another Team,test2,A,A,B,B
-2025-02-26,Another Team,test3,B,B,C,C
+Date,Time,Opponent,Player,Boldholder,Medspiller,Presspiller,Støttespiller
+2025-02-25,09:00,Morning Team,Test1,A,B,C,B
+2025-02-25,09:00,Morning Team,Test3,B,A,B,C
+2025-02-25,09:00,Morning Team,Test5,C,B,A,B
+2025-02-25,09:00,Morning Team,Test7,B,C,B,A
+2025-02-25,09:00,Morning Team,Test9,A,B,C,B
+2025-02-25,15:00,Afternoon Team,Test2,B,C,A,B
+2025-02-25,15:00,Afternoon Team,Test4,C,B,B,A
+2025-02-25,15:00,Afternoon Team,Test6,A,B,C,C
+2025-02-25,15:00,Afternoon Team,Test8,B,A,B,B
+2025-02-25,15:00,Afternoon Team,Test10,C,B,A,B
+2025-02-23,12:00,Team Alpha,Test1,B,A,C,B
+2025-02-23,12:00,Team Alpha,Test2,A,B,B,C
+2025-02-23,12:00,Team Alpha,Test3,C,B,A,B
+2025-02-23,12:00,Team Alpha,Test4,B,C,B,A
+2025-02-23,12:00,Team Alpha,Test5,A,B,C,B
+2025-02-24,14:00,Team Beta,Test6,C,A,B,B
+2025-02-24,14:00,Team Beta,Test7,B,B,A,C
+2025-02-24,14:00,Team Beta,Test8,A,C,B,B
+2025-02-24,14:00,Team Beta,Test9,B,B,C,A
+2025-02-24,14:00,Team Beta,Test10,C,A,B,B
+2025-02-26,10:00,Team Gamma,Test1,A,B,C,A
+2025-02-26,10:00,Team Gamma,Test4,B,A,B,C
+2025-02-26,10:00,Team Gamma,Test7,C,B,A,B
+2025-02-26,10:00,Team Gamma,Test8,B,C,B,A
+2025-02-26,10:00,Team Gamma,Test10,A,B,C,B
