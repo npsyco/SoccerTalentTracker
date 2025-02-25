@@ -12,10 +12,10 @@ class DataManager:
         """Initialize CSV files if they don't exist"""
         if not os.path.exists("data"):
             os.makedirs("data")
-            
+
         if not os.path.exists(self.players_file):
             pd.DataFrame(columns=['Name', 'Position']).to_csv(self.players_file, index=False)
-            
+
         if not os.path.exists(self.matches_file):
             columns = ['Date', 'Opponent', 'Player', 'Technical', 'Tactical', 'Physical', 'Mental']
             pd.DataFrame(columns=columns).to_csv(self.matches_file, index=False)
@@ -33,7 +33,7 @@ class DataManager:
         players_df = pd.read_csv(self.players_file)
         players_df = players_df[players_df['Name'] != name]
         players_df.to_csv(self.players_file, index=False)
-        
+
         # Also remove player's match records
         matches_df = pd.read_csv(self.matches_file)
         matches_df = matches_df[matches_df['Player'] != name]
@@ -46,7 +46,7 @@ class DataManager:
     def add_match_record(self, date, opponent, players_df, ratings):
         """Add match performance records for all players"""
         matches_df = pd.read_csv(self.matches_file)
-        
+
         new_records = []
         for _, player in players_df.iterrows():
             record = {
@@ -59,7 +59,7 @@ class DataManager:
                 'Mental': ratings['Mental']
             }
             new_records.append(record)
-            
+
         new_records_df = pd.DataFrame(new_records)
         matches_df = pd.concat([matches_df, new_records_df], ignore_index=True)
         matches_df.to_csv(self.matches_file, index=False)
@@ -72,6 +72,13 @@ class DataManager:
     def get_team_performance(self):
         """Get team's overall performance history"""
         matches_df = pd.read_csv(self.matches_file)
-        if not matches_df.empty:
-            return matches_df.groupby('Date').mean()[['Technical', 'Tactical', 'Physical', 'Mental']]
-        return pd.DataFrame()
+        if matches_df.empty:
+            return pd.DataFrame()
+
+        # Convert rating columns to numeric
+        numeric_columns = ['Technical', 'Tactical', 'Physical', 'Mental']
+        for col in numeric_columns:
+            matches_df[col] = pd.to_numeric(matches_df[col], errors='coerce')
+
+        # Group by date and calculate mean of only numeric columns
+        return matches_df.groupby('Date')[numeric_columns].mean()
