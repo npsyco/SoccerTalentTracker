@@ -1,18 +1,7 @@
-Date,Opponent,Player,Technical,Tactical,Physical,Mental,Boldholder,Medspiller,Presspiller,Støttespiller
-2025-02-25,Modstander1,test1,,,,,A,A,A,A
-2025-02-25,Modstander1,test3,,,,,A,A,A,A
-2025-02-26,Ikke angivet,test4,,,,,A,A,A,A
-2025-02-26,Ikke angivet,test5,,,,,A,A,A,A
-2025-02-25,Ikke angivet,test1,,,,,A,B,B,A
-2025-02-25,Ikke angivet,test2,,,,,C,A,C,A
-2025-02-25,Ikke angivet,test3,,,,,D,A,A,D
-2025-02-25,Ikke angivet,test1,,,,,A,A,A,D
-2025-02-25,Ikke angivet,test3,,,,,C,A,A,A
-2025-02-25,Ikke angivet,test4,,,,,A,A,B,A
-2025-02-25,Ikke angivet,test5,,,,,A,D,A,A
-2025-01-17,Ikke angivet,test1,,,,,A,A,A,B
-2025-01-17,Ikke angivet,test2,,,,,A,A,A,A
-2025-01-17,Ikke angivet,test,,,,,A,B,C,D
-2025-01-17,Ikke angivet,test3,,,,,A,B,C,A
-2025-01-17,Ikke angivet,test4,,,,,C,C,D,C
-2025-01-17,Ikke angivet,test5,,,,,A,A,A,A
+Date,Opponent,Player,Boldholder,Medspiller,Presspiller,Støttespiller
+2025-02-25,Test Opponent,test1,A,B,C,D
+2025-02-25,Test Opponent,test2,B,A,D,C
+2025-02-25,Test Opponent,test3,C,D,A,B
+2025-02-26,Another Team,test1,D,C,B,A
+2025-02-26,Another Team,test2,A,A,B,B
+2025-02-26,Another Team,test3,B,B,C,C

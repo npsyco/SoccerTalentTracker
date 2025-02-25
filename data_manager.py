@@ -78,6 +78,14 @@ class DataManager:
             if end_date:
                 player_data = player_data[player_data['Date'] <= end_date]
 
+            # Ensure proper categorical ordering for all rating columns
+            for category in ['Boldholder', 'Medspiller', 'Presspiller', 'Støttespiller']:
+                player_data[category] = pd.Categorical(
+                    player_data[category],
+                    categories=self.rating_order,
+                    ordered=True
+                )
+
         return player_data.sort_values('Date')
 
     def get_available_seasons(self):
@@ -127,7 +135,7 @@ class DataManager:
                 if not ratings.empty:
                     max_count = ratings.max()
                     most_common = ratings[ratings == max_count].index
-                    date_ratings[category] = sorted(most_common, reverse=True)[0]
+                    date_ratings[category] = sorted(most_common)[0]  # Take the lowest rating in case of tie
                 else:
                     date_ratings[category] = 'D'
 
