@@ -89,9 +89,11 @@ class PostgresDataManager:
     def get_player_performance(self, player_name, start_date=None, end_date=None):
         """Get performance history for a specific player within date range"""
         query = """
-            WITH valid_matches AS (
-                -- First get only valid matches and ensure proper date handling
-                SELECT m.* 
+            WITH distinct_valid_dates AS (
+                -- First get distinct dates that have complete match data for this player
+                SELECT DISTINCT 
+                    m.date::date as date,
+                    m.time::time as time
                 FROM matches m
                 JOIN players p ON m.player_id = p.id
                 WHERE p.name = %s
@@ -99,20 +101,33 @@ class PostgresDataManager:
                 AND m.date != '1970-01-01'::date
                 AND m.date >= '2000-01-01'::date
                 AND m.date <= CURRENT_DATE
-                AND EXTRACT(YEAR FROM m.date) IS NOT NULL
+                AND m.boldholder IS NOT NULL
+                AND m.medspiller IS NOT NULL
+                AND m.presspiller IS NOT NULL
+                AND m.stottespiller IS NOT NULL
+            ),
+            valid_matches AS (
+                -- Join back to get only matches on valid dates
+                SELECT 
+                    m.date::date as date,
+                    m.time::time as time,
+                    m.opponent,
+                    m.boldholder as "Boldholder",
+                    m.medspiller as "Medspiller",
+                    m.presspiller as "Presspiller",
+                    m.stottespiller as "Støttespiller"
+                FROM matches m
+                JOIN players p ON m.player_id = p.id
+                INNER JOIN distinct_valid_dates d 
+                    ON m.date::date = d.date 
+                    AND (m.time::time = d.time OR (m.time IS NULL AND d.time IS NULL))
+                WHERE p.name = %s
             )
-            SELECT 
-                date::date as date, 
-                time::time as time,
-                opponent,
-                boldholder as "Boldholder",
-                medspiller as "Medspiller",
-                presspiller as "Presspiller",
-                stottespiller as "Støttespiller"
-            FROM valid_matches
+            SELECT * FROM valid_matches
             ORDER BY date, time
         """
-        params = [player_name]
+        # Need to pass player_name twice because it's used in both CTEs
+        params = [player_name, player_name]
 
         if start_date:
             query = query.replace("ORDER BY date, time", "AND date >= %s ORDER BY date, time")
@@ -125,14 +140,13 @@ class PostgresDataManager:
             with psycopg2.connect(self.conn_string) as conn:
                 df = pd.read_sql_query(query, conn, params=params)
                 if not df.empty:
-                    # Ensure date and time are properly formatted
-                    df['Date'] = pd.to_datetime(df['date']).dt.date
-                    df['Time'] = pd.to_datetime(df['time'], format='%H:%M:%S').dt.time
-                    # Drop the original date/time columns
-                    df = df.drop(['date', 'time'], axis=1)
-                    # Convert rating columns to numeric values
+                    # Convert ratings to numeric values
                     for category in ['Boldholder', 'Medspiller', 'Presspiller', 'Støttespiller']:
                         df[category] = df[category].map(self.rating_map)
+                    # Keep date and time as is, since they're already properly formatted by Postgres
+                    df['Date'] = df['date']
+                    df['Time'] = df['time']
+                    df = df.drop(['date', 'time'], axis=1)
                 return df
         except psycopg2.Error as e:
             print(f"Error getting player performance: {e}")
@@ -141,26 +155,37 @@ class PostgresDataManager:
     def get_team_performance(self, start_date=None, end_date=None):
         """Get team's overall performance history within date range"""
         query = """
-            WITH valid_matches AS (
-                -- First get only valid matches and ensure proper date handling
-                SELECT 
+            WITH distinct_valid_dates AS (
+                -- First get distinct dates that have complete match data
+                SELECT DISTINCT 
                     date::date as date,
-                    time::time as time,
-                    boldholder,
-                    medspiller,
-                    presspiller,
-                    stottespiller
-                FROM matches
+                    time::time as time
+                FROM matches 
                 WHERE date IS NOT NULL 
                 AND date != '1970-01-01'::date
                 AND date >= '2000-01-01'::date
                 AND date <= CURRENT_DATE
-                AND EXTRACT(YEAR FROM date) IS NOT NULL
+                AND boldholder IS NOT NULL
+                AND medspiller IS NOT NULL
+                AND presspiller IS NOT NULL
+                AND stottespiller IS NOT NULL
+            ),
+            valid_matches AS (
+                -- Join back to get only matches on valid dates
+                SELECT m.*
+                FROM matches m
+                INNER JOIN distinct_valid_dates d 
+                    ON m.date::date = d.date 
+                    AND (m.time::time = d.time OR (m.time IS NULL AND d.time IS NULL))
+                WHERE m.boldholder IS NOT NULL
+                AND m.medspiller IS NOT NULL
+                AND m.presspiller IS NOT NULL
+                AND m.stottespiller IS NOT NULL
             ),
             match_ratings AS (
                 SELECT 
-                    date,
-                    time,
+                    date::date as date,
+                    time::time as time,
                     CASE boldholder 
                         WHEN 'A' THEN 4.0 
                         WHEN 'B' THEN 3.0 
@@ -194,8 +219,7 @@ class PostgresDataManager:
                     ROUND(AVG(boldholder_val)::numeric, 2) as "Boldholder",
                     ROUND(AVG(medspiller_val)::numeric, 2) as "Medspiller",
                     ROUND(AVG(presspiller_val)::numeric, 2) as "Presspiller",
-                    ROUND(AVG(stottespiller_val)::numeric, 2) as "Støttespiller",
-                    COUNT(*) as player_count
+                    ROUND(AVG(stottespiller_val)::numeric, 2) as "Støttespiller"
                 FROM match_ratings
                 GROUP BY date, time
                 HAVING COUNT(*) > 0
@@ -216,10 +240,8 @@ class PostgresDataManager:
             with psycopg2.connect(self.conn_string) as conn:
                 df = pd.read_sql_query(query, conn, params=params)
                 if not df.empty:
-                    # Set date as index
+                    # Set MultiIndex with date and time
                     df.set_index(['date', 'time'], inplace=True)
-                    # Drop the player_count column as it's no longer needed
-                    df = df.drop('player_count', axis=1)
                 return df
         except psycopg2.Error as e:
             print(f"Error getting team performance: {e}")

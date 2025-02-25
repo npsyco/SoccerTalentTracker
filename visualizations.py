@@ -95,15 +95,11 @@ class Visualizer:
 
         # Format x-axis labels to include time when multiple matches on same date
         x_labels = []
-        dates = data['Date']
-        for i, date in enumerate(dates):
-            if 'Time' in data.columns and not pd.isna(data['Time'].iloc[i]):
-                if len(data[data['Date'] == date]) > 1:
-                    x_labels.append(f"{date}\n{data['Time'].iloc[i]}")
-                else:
-                    x_labels.append(str(date))
+        for _, row in data.iterrows():
+            if pd.notna(row['Time']):
+                x_labels.append(f"{row['Date']}\n{row['Time']}")
             else:
-                x_labels.append(str(date))
+                x_labels.append(str(row['Date']))
 
         # Add letter grade regions first (so they appear behind the lines)
         regions = [
@@ -113,18 +109,19 @@ class Visualizer:
             ("A", 3.75, 4.5, "#e3f2fd")    # Light blue
         ]
 
-        for grade, y0, y1, color in regions:
-            fig.add_shape(
-                type="rect",
-                x0=x_labels[0],
-                x1=x_labels[-1],
-                y0=y0,
-                y1=y1,
-                fillcolor=color,
-                opacity=0.2,
-                layer="below",
-                line_width=0,
-            )
+        if x_labels:  # Only add regions if we have data points
+            for grade, y0, y1, color in regions:
+                fig.add_shape(
+                    type="rect",
+                    x0=x_labels[0],
+                    x1=x_labels[-1],
+                    y0=y0,
+                    y1=y1,
+                    fillcolor=color,
+                    opacity=0.2,
+                    layer="below",
+                    line_width=0,
+                )
 
         for category in ['Boldholder', 'Medspiller', 'Presspiller', 'Støttespiller']:
             fig.add_trace(go.Scatter(
@@ -132,7 +129,7 @@ class Visualizer:
                 y=data[category],
                 mode='lines+markers',
                 name=category,
-                line=dict(color=self.colors[category], width=2, shape='spline'),
+                line=dict(color=self.colors[category], width=2),
                 marker=dict(size=8)
             ))
 
@@ -148,7 +145,6 @@ class Visualizer:
             ),
             height=500,
             showlegend=True,
-            # Make layout more compact
             margin=dict(
                 l=50,    # left margin
                 r=20,    # right margin
@@ -163,22 +159,16 @@ class Visualizer:
         """Plot single category performance over time for the team"""
         fig = go.Figure()
 
+        if data.empty:
+            return fig
+
         # Format x-axis labels
         x_labels = []
-
-        # Convert tuple index to datetime strings
-        for idx in data.index:
-            if isinstance(idx, tuple) and len(idx) == 2:
-                date, time = idx
-                if time:
-                    x_labels.append(f"{date}\n{time}")
-                else:
-                    x_labels.append(str(date))
+        for date, time in data.index:
+            if pd.notna(time):
+                x_labels.append(f"{date}\n{time}")
             else:
-                x_labels.append(str(idx))
-
-        if not x_labels:  # If no valid dates, return empty figure
-            return fig
+                x_labels.append(str(date))
 
         # Add letter grade regions
         regions = [
@@ -188,25 +178,26 @@ class Visualizer:
             ("A", 3.75, 4.5, "#e3f2fd")    # Light blue
         ]
 
-        for grade, y0, y1, color in regions:
-            fig.add_shape(
-                type="rect",
-                x0=x_labels[0],
-                x1=x_labels[-1],
-                y0=y0,
-                y1=y1,
-                fillcolor=color,
-                opacity=0.2,
-                layer="below",
-                line_width=0,
-            )
+        if x_labels:  # Only add regions if we have data points
+            for grade, y0, y1, color in regions:
+                fig.add_shape(
+                    type="rect",
+                    x0=x_labels[0],
+                    x1=x_labels[-1],
+                    y0=y0,
+                    y1=y1,
+                    fillcolor=color,
+                    opacity=0.2,
+                    layer="below",
+                    line_width=0,
+                )
 
         fig.add_trace(go.Scatter(
             x=x_labels,
             y=data[category],
             mode='lines+markers',
             name=category,
-            line=dict(color=self.colors[category], width=2, shape='spline'),
+            line=dict(color=self.colors[category], width=2),
             marker=dict(size=8)
         ))
 
@@ -236,20 +227,16 @@ class Visualizer:
         """Plot all categories performance over time for the team"""
         fig = go.Figure()
 
+        if data.empty:
+            return fig
+
         # Format x-axis labels
         x_labels = []
-        for idx in data.index:
-            if isinstance(idx, tuple) and len(idx) == 2:
-                date, time = idx
-                if time:
-                    x_labels.append(f"{date}\n{time}")
-                else:
-                    x_labels.append(str(date))
+        for date, time in data.index:
+            if pd.notna(time):
+                x_labels.append(f"{date}\n{time}")
             else:
-                x_labels.append(str(idx))
-
-        if not x_labels:  # If no valid dates, return empty figure
-            return fig
+                x_labels.append(str(date))
 
         # Add letter grade regions first (so they appear behind the lines)
         regions = [
@@ -259,18 +246,19 @@ class Visualizer:
             ("A", 3.75, 4.5, "#e3f2fd")    # Light blue
         ]
 
-        for grade, y0, y1, color in regions:
-            fig.add_shape(
-                type="rect",
-                x0=x_labels[0],
-                x1=x_labels[-1],
-                y0=y0,
-                y1=y1,
-                fillcolor=color,
-                opacity=0.2,
-                layer="below",
-                line_width=0,
-            )
+        if x_labels:  # Only add regions if we have data points
+            for grade, y0, y1, color in regions:
+                fig.add_shape(
+                    type="rect",
+                    x0=x_labels[0],
+                    x1=x_labels[-1],
+                    y0=y0,
+                    y1=y1,
+                    fillcolor=color,
+                    opacity=0.2,
+                    layer="below",
+                    line_width=0,
+                )
 
         for category in ['Boldholder', 'Medspiller', 'Presspiller', 'Støttespiller']:
             fig.add_trace(go.Scatter(
@@ -278,7 +266,7 @@ class Visualizer:
                 y=data[category],
                 mode='lines+markers',
                 name=category,
-                line=dict(color=self.colors[category], width=2, shape='spline'),
+                line=dict(color=self.colors[category], width=2),
                 marker=dict(size=8)
             ))
 
@@ -330,9 +318,9 @@ class Visualizer:
         # Track all x values to update region boundaries
         all_dates = set()
 
-        # First pass: collect all unique dates
+        # First pass: collect all dates
         for data in player_data_dict.values():
-            all_dates.update(data['Date'])
+            all_dates.update([str(date) for date in data['Date']])
 
         # Sort dates chronologically
         all_dates = sorted(all_dates)
@@ -360,9 +348,17 @@ class Visualizer:
         for i, (player_name, data) in enumerate(player_data_dict.items()):
             player_color = self.player_colors[i % len(self.player_colors)]
             for idx, category in enumerate(categories, 1):
+                # Format x labels for each data point
+                x_labels = []
+                for _, row in data.iterrows():
+                    if pd.notna(row['Time']):
+                        x_labels.append(f"{row['Date']}\n{row['Time']}")
+                    else:
+                        x_labels.append(str(row['Date']))
+
                 fig.add_trace(
                     go.Scatter(
-                        x=data['Date'],
+                        x=x_labels,
                         y=data[category],
                         name=player_name,
                         mode='lines+markers',
@@ -386,16 +382,13 @@ class Visualizer:
                 xanchor="center",
                 x=0.5
             ),
-            # Optimize margins
             margin=dict(
                 l=50,    # left margin
                 r=20,    # right margin
                 t=100,   # top margin for title and legend
                 b=50,    # bottom margin
                 pad=4    # padding between subplots
-            ),
-            # Ensure plots use full width
-            width=None  # Let Streamlit control the width
+            )
         )
 
         # Update all axes with strict configuration
@@ -417,7 +410,6 @@ class Visualizer:
             fig.update_xaxes(
                 dict(
                     showgrid=False,
-                    dtick="D1",  # Show all dates
                     constrain='domain',  # Ensure axis stays within its domain
                     automargin=True  # Allow margin adjustment for labels
                 ),
