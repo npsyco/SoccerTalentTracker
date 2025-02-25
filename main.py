@@ -5,7 +5,7 @@ from visualizations import Visualizer
 from utils import initialize_session_state
 import datetime
 
-st.set_page_config(page_title="Soccer Player Performance Tracker", layout="wide")
+st.set_page_config(page_title="Sorø-Freja Spiller Udviklingsværktøj", layout="wide")
 
 def main():
     # Initialize session state
@@ -15,7 +15,7 @@ def main():
     dm = DataManager()
     viz = Visualizer()
 
-    st.title("⚽ Soccer Player Performance Tracker")
+    st.title("Sorø-Freja Spiller Udviklingsværktøj")
 
     # Sidebar navigation
     page = st.sidebar.selectbox(
