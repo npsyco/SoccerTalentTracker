@@ -106,10 +106,14 @@ def show_user_management():
                             st.error("Kunne ikke opdatere bruger")
 
             with col2:
-                # Delete user
+                # Delete user section
                 st.subheader("Slet Bruger")
                 if st.button("Slet Bruger"):
-                    if st.warning("Er du sikker på, at du vil slette denne bruger?"):
+                    # Create a confirmation dialog
+                    confirm_delete = st.button("Bekræft sletning")
+                    st.warning(f"Er du sikker på, at du vil slette brugeren '{selected_user}'?")
+
+                    if confirm_delete:
                         if delete_user(auth_db, selected_user):
                             st.success("Bruger slettet!")
                             st.rerun()
