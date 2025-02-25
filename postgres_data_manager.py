@@ -90,15 +90,16 @@ class PostgresDataManager:
         """Get performance history for a specific player within date range"""
         query = """
             WITH valid_matches AS (
-                -- First get only valid matches
+                -- First get only valid matches and ensure proper date handling
                 SELECT m.* 
                 FROM matches m
                 JOIN players p ON m.player_id = p.id
                 WHERE p.name = %s
                 AND m.date IS NOT NULL 
-                AND m.date != '1970-01-01'
-                AND EXTRACT(YEAR FROM m.date) >= 2000
-                AND EXTRACT(YEAR FROM m.date) <= EXTRACT(YEAR FROM CURRENT_DATE)
+                AND m.date != '1970-01-01'::date
+                AND m.date >= '2000-01-01'::date
+                AND m.date <= CURRENT_DATE
+                AND EXTRACT(YEAR FROM m.date) IS NOT NULL
             )
             SELECT 
                 date::date as date, 
@@ -140,47 +141,51 @@ class PostgresDataManager:
     def get_team_performance(self, start_date=None, end_date=None):
         """Get team's overall performance history within date range"""
         query = """
-            WITH match_dates AS (
-                -- First get only valid match dates
-                SELECT DISTINCT date::date as date, time::time as time
+            WITH valid_matches AS (
+                -- First get only valid matches and ensure proper date handling
+                SELECT 
+                    date::date as date,
+                    time::time as time,
+                    boldholder,
+                    medspiller,
+                    presspiller,
+                    stottespiller
                 FROM matches
                 WHERE date IS NOT NULL 
-                AND date != '1970-01-01'
-                AND EXTRACT(YEAR FROM date) >= 2000
-                AND EXTRACT(YEAR FROM date) <= EXTRACT(YEAR FROM CURRENT_DATE)
+                AND date != '1970-01-01'::date
+                AND date >= '2000-01-01'::date
+                AND date <= CURRENT_DATE
+                AND EXTRACT(YEAR FROM date) IS NOT NULL
             ),
             match_ratings AS (
                 SELECT 
-                    m.date,
-                    m.time,
-                    -- Convert ratings to numeric values with explicit casting
-                    CASE m.boldholder 
+                    date,
+                    time,
+                    CASE boldholder 
                         WHEN 'A' THEN 4.0 
                         WHEN 'B' THEN 3.0 
                         WHEN 'C' THEN 2.0 
                         WHEN 'D' THEN 1.0 
                     END::numeric as boldholder_val,
-                    CASE m.medspiller 
+                    CASE medspiller 
                         WHEN 'A' THEN 4.0 
                         WHEN 'B' THEN 3.0 
                         WHEN 'C' THEN 2.0 
                         WHEN 'D' THEN 1.0 
                     END::numeric as medspiller_val,
-                    CASE m.presspiller 
+                    CASE presspiller 
                         WHEN 'A' THEN 4.0 
                         WHEN 'B' THEN 3.0 
                         WHEN 'C' THEN 2.0 
                         WHEN 'D' THEN 1.0 
                     END::numeric as presspiller_val,
-                    CASE m.stottespiller 
+                    CASE stottespiller 
                         WHEN 'A' THEN 4.0 
                         WHEN 'B' THEN 3.0 
                         WHEN 'C' THEN 2.0 
                         WHEN 'D' THEN 1.0 
                     END::numeric as stottespiller_val
-                FROM matches m
-                JOIN match_dates d ON m.date::date = d.date AND 
-                                    (m.time::time = d.time OR (m.time IS NULL AND d.time IS NULL))
+                FROM valid_matches
             ),
             match_averages AS (
                 SELECT 
@@ -201,10 +206,10 @@ class PostgresDataManager:
         params = []
 
         if start_date:
-            query = query + " WHERE date >= %s"
+            query = query.replace("ORDER BY date, time", "AND date >= %s ORDER BY date, time")
             params.append(start_date)
         if end_date:
-            query += " AND date <= %s" if start_date else " WHERE date <= %s"
+            query = query.replace("ORDER BY date, time", "AND date <= %s ORDER BY date, time")
             params.append(end_date)
 
         try:
