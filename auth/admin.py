@@ -229,31 +229,44 @@ def show_user_management():
                 options=[user["username"] for user in non_admin_users]
             )
 
+            # Get the selected user's ID
+            selected_user_data = next(
+                (user for user in non_admin_users if user["username"] == selected_user), 
+                None
+            )
+
             col1, col2 = st.columns(2)
             with col1:
                 if st.button("Skift til bruger"):
-                    # Store the impersonated user in session state
-                    st.session_state.impersonated_user = selected_user
-                    st.success(f"Du administrerer nu {selected_user}'s data")
-                    st.rerun()
+                    if selected_user_data:
+                        # Store both username and ID for impersonation
+                        st.session_state.impersonated_user = selected_user
+                        st.session_state.impersonated_user_id = selected_user_data["id"]
+                        st.success(f"Du administrerer nu {selected_user}'s data")
+                        st.rerun()
+                    else:
+                        st.error("Kunne ikke finde brugerdata")
 
             with col2:
                 if st.button("Generer testdata"):
-                    from data_manager import DataManager
-                    dm = DataManager()
-                    dm.reset_data()  # Clear existing data
-                    dm.generate_test_data(selected_user)  # Generate new test data
-                    st.success(f"Testdata genereret for {selected_user}")
-                    st.rerun()
+                    if selected_user_data:
+                        from data_manager import DataManager
+                        dm = DataManager()
+                        dm.generate_test_data(selected_user_data["id"])  # Pass user ID instead of username
+                        st.success(f"Testdata genereret for {selected_user}")
+                        st.rerun()
 
         else:
             st.info("Ingen brugere at administrere")
 
-        # Show current impersonation status
+        # Show current impersonation status and clear button
         if "impersonated_user" in st.session_state:
             st.write(f"Du administrerer: **{st.session_state.impersonated_user}**")
             if st.button("Afslut administration"):
-                del st.session_state.impersonated_user
+                if "impersonated_user" in st.session_state:
+                    del st.session_state.impersonated_user
+                if "impersonated_user_id" in st.session_state:
+                    del st.session_state.impersonated_user_id
                 st.rerun()
 
 def get_all_users(auth_db: AuthDB) -> List[Dict]:

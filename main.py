@@ -111,8 +111,10 @@ def main():
     # Create top navigation bar with account info
     _, _, account_col = st.columns([1, 2, 1])
     with account_col:
-        # Show impersonation warning if admin is impersonating another user
-        if "impersonated_user" in st.session_state:
+        # Show impersonation warning only when admin is actually impersonating
+        if ("impersonated_user" in st.session_state and 
+            st.session_state.user['role'] == 'admin' and 
+            st.session_state.user['username'] != st.session_state.impersonated_user):
             st.markdown(
                 f"""
                 <div class="impersonation-warning">
@@ -178,20 +180,29 @@ def main():
 
                 if st.form_submit_button("Tilføj Spiller"):
                     if player_name:
-                        # Pass current_user_id when adding player
-                        dm.add_player(player_name, "Not specified", current_user_id)
-                        st.success(f"Spiller tilføjet: {player_name}")
+                        # Get current players to check for duplicates
+                        current_players = dm.get_players(current_user_id)
+                        if not current_players.empty and player_name in current_players['Name'].values:
+                            st.error(f"Spiller '{player_name}' findes allerede")
+                        else:
+                            if dm.add_player(player_name, "Not specified", current_user_id):
+                                st.success(f"Spiller tilføjet: {player_name}")
+                                st.rerun()
+                            else:
+                                st.error("Kunne ikke tilføje spiller")
                     else:
                         st.error("Indtast venligst et spillernavn")
 
         with col2:
             st.subheader("Aktive Spillere")
-            # Pass current_user_id when getting players
             players_df = dm.get_players(current_user_id)
+
             if not players_df.empty:
                 st.dataframe(players_df[['Name']])
-
-                player_to_delete = st.selectbox("Vælg spiller fra listen der skal slettes", players_df['Name'].tolist())
+                player_to_delete = st.selectbox(
+                    "Vælg spiller fra listen der skal slettes", 
+                    players_df['Name'].tolist()
+                )
 
                 # Initialize deletion state if not present
                 if 'delete_confirmation' not in st.session_state:
@@ -225,6 +236,8 @@ def main():
                             st.session_state.delete_confirmation = False
                             st.session_state.player_to_delete = None
                             st.rerun()
+            else:
+                st.info("Ingen spillere fundet")
 
     elif st.session_state.page == "Kampdata":
         # Require coach or assistant_coach role

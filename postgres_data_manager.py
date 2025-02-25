@@ -16,10 +16,18 @@ class PostgresDataManager:
         try:
             with psycopg2.connect(self.conn_string) as conn:
                 with conn.cursor() as cur:
+                    # First check if player exists for this user
+                    cur.execute("""
+                        SELECT COUNT(*) FROM players 
+                        WHERE name = %s AND user_id = %s
+                    """, (name, user_id))
+
+                    if cur.fetchone()[0] > 0:
+                        return False
+
                     cur.execute("""
                         INSERT INTO players (name, position, user_id)
                         VALUES (%s, %s, %s)
-                        ON CONFLICT (name, user_id) DO NOTHING
                         RETURNING id
                     """, (name, position, user_id))
                     conn.commit()
