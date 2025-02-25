@@ -52,7 +52,6 @@ def create_initial_admin():
                     """, (admin_username, password_hash, admin_email, admin_role_id))
 
                 conn.commit()
-                st.success(f"Admin user '{admin_username}' set up successfully")
 
     except Exception as e:
         st.error(f"Error setting up admin user: {str(e)}")
