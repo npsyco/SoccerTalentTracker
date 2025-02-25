@@ -361,7 +361,8 @@ def main():
                 selected_players = st.multiselect(
                     "Vælg spillere at sammenligne",
                     players_df['Name'].tolist(),
-                    max_selections=4  # Limit to 4 players for better visualization
+                    max_selections=4,  # Limit to 4 players for better visualization
+                    placeholder="Vælg én eller flere spiller"
                 )
 
                 if selected_players:
