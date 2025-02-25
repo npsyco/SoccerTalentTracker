@@ -378,7 +378,14 @@ def main():
                         fig = viz.plot_player_all_categories(player_data, player)
                     else:
                         fig = viz.plot_player_single_category(player_data, player, category)
-                    st.plotly_chart(fig)
+                    st.plotly_chart(fig, config={
+                        'displayModeBar': False,  # Hide the modebar completely
+                        'scrollZoom': False,      # Disable scroll zoom
+                        'doubleClick': False,     # Disable double click actions
+                        'showTips': False,        # Disable hover tips
+                        'displaylogo': False,     # Hide Plotly logo
+                        'responsive': True        # Make the plot responsive to window size
+                    }, use_container_width=True)  # Use full container width
                 else:
                     st.info("Ingen data tilgængelig for denne spiller")
 

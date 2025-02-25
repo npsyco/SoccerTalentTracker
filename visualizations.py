@@ -17,17 +17,17 @@ class Visualizer:
         """Plot single category performance over time for a player"""
         fig = go.Figure()
 
-        # Format x-axis labels to include time when multiple matches on same date
+        # Format x-axis labels
         x_labels = []
-        dates = data['Date'].dt.strftime('%Y-%m-%d').values
+        dates = data['Date']
         for i, date in enumerate(dates):
             if 'Time' in data.columns and not pd.isna(data['Time'].iloc[i]):
-                if len(data[data['Date'].dt.strftime('%Y-%m-%d') == date]) > 1:
+                if len(data[data['Date'] == date]) > 1:
                     x_labels.append(f"{date}\n{data['Time'].iloc[i]}")
                 else:
-                    x_labels.append(date)
+                    x_labels.append(str(date))
             else:
-                x_labels.append(date)
+                x_labels.append(str(date))
 
         fig.add_trace(go.Scatter(
             x=x_labels,
@@ -70,7 +70,14 @@ class Visualizer:
                 showgrid=False
             ),
             height=500,
-            showlegend=True
+            showlegend=True,
+            # Make layout more compact
+            margin=dict(
+                l=50,    # left margin
+                r=20,    # right margin
+                t=100,   # top margin for title
+                b=50,    # bottom margin
+            )
         )
 
         return fig
@@ -81,15 +88,15 @@ class Visualizer:
 
         # Format x-axis labels to include time when multiple matches on same date
         x_labels = []
-        dates = data['Date'].dt.strftime('%Y-%m-%d').values
+        dates = data['Date']
         for i, date in enumerate(dates):
             if 'Time' in data.columns and not pd.isna(data['Time'].iloc[i]):
-                if len(data[data['Date'].dt.strftime('%Y-%m-%d') == date]) > 1:
+                if len(data[data['Date'] == date]) > 1:
                     x_labels.append(f"{date}\n{data['Time'].iloc[i]}")
                 else:
-                    x_labels.append(date)
+                    x_labels.append(str(date))
             else:
-                x_labels.append(date)
+                x_labels.append(str(date))
 
         # Add letter grade regions first (so they appear behind the lines)
         regions = [
@@ -133,7 +140,14 @@ class Visualizer:
                 showgrid=False
             ),
             height=500,
-            showlegend=True
+            showlegend=True,
+            # Make layout more compact
+            margin=dict(
+                l=50,    # left margin
+                r=20,    # right margin
+                t=100,   # top margin for title
+                b=50,    # bottom margin
+            )
         )
 
         return fig
