@@ -65,14 +65,42 @@ class DataManager:
         matches_df = pd.concat([matches_df, new_records_df], ignore_index=True)
         matches_df.to_csv(self.matches_file, index=False)
 
-    def get_player_performance(self, player_name):
-        """Get performance history for a specific player"""
+    def get_player_performance(self, player_name, start_date=None, end_date=None):
+        """Get performance history for a specific player within date range"""
         matches_df = pd.read_csv(self.matches_file)
-        return matches_df[matches_df['Player'] == player_name].sort_values('Date')
+        player_data = matches_df[matches_df['Player'] == player_name].copy()
 
-    def get_team_performance(self):
-        """Get team's overall performance history"""
+        if not player_data.empty:
+            player_data['Date'] = pd.to_datetime(player_data['Date'])
+            if start_date:
+                player_data = player_data[player_data['Date'] >= start_date]
+            if end_date:
+                player_data = player_data[player_data['Date'] <= end_date]
+
+        return player_data.sort_values('Date')
+
+    def get_available_seasons(self):
+        """Get list of available seasons (years) from match data"""
         matches_df = pd.read_csv(self.matches_file)
+        if not matches_df.empty:
+            matches_df['Date'] = pd.to_datetime(matches_df['Date'])
+            years = sorted(matches_df['Date'].dt.year.unique())
+            return years
+        return []
+
+    def get_team_performance(self, start_date=None, end_date=None):
+        """Get team's overall performance history within date range"""
+        matches_df = pd.read_csv(self.matches_file)
+        if matches_df.empty:
+            return pd.DataFrame()
+
+        # Convert date and filter by date range
+        matches_df['Date'] = pd.to_datetime(matches_df['Date'])
+        if start_date:
+            matches_df = matches_df[matches_df['Date'] >= start_date]
+        if end_date:
+            matches_df = matches_df[matches_df['Date'] <= end_date]
+
         if matches_df.empty:
             return pd.DataFrame()
 

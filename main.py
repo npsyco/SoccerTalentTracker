@@ -162,10 +162,35 @@ def main():
     else:  # Udviklingsanalyse
         st.header("Udviklingsanalyse")
 
-        analysis_type = st.radio(
-            "Vælg analysetype",
-            ["Individuel Spilleranalyse", "Holdanalyse"]
-        )
+        # Add date range filtering
+        col1, col2 = st.columns([1, 2])
+        with col1:
+            analysis_type = st.radio(
+                "Vælg analysetype",
+                ["Individuel Spilleranalyse", "Holdanalyse"]
+            )
+
+        with col2:
+            # Get available seasons
+            available_seasons = dm.get_available_seasons()
+            if available_seasons:
+                selected_season = st.selectbox(
+                    "Vælg sæson",
+                    ["Alle sæsoner"] + [str(year) for year in available_seasons]
+                )
+
+                # Set date range based on selected season
+                if selected_season != "Alle sæsoner":
+                    year = int(selected_season)
+                    start_date = f"{year}-01-01"
+                    end_date = f"{year}-12-31"
+                else:
+                    start_date = None
+                    end_date = None
+            else:
+                st.info("Ingen kampdata tilgængelig")
+                start_date = None
+                end_date = None
 
         if analysis_type == "Individuel Spilleranalyse":
             players_df = dm.get_players()
@@ -176,7 +201,7 @@ def main():
                     ["Alle roller", "Boldholder", "Medspiller", "Presspiller", "Støttespiller"]
                 )
 
-                player_data = dm.get_player_performance(player)
+                player_data = dm.get_player_performance(player, start_date, end_date)
                 if not player_data.empty:
                     if category == "Alle roller":
                         fig = viz.plot_player_all_categories(player_data, player)
@@ -192,7 +217,7 @@ def main():
                 ["Alle roller", "Boldholder", "Medspiller", "Presspiller", "Støttespiller"]
             )
 
-            team_data = dm.get_team_performance()
+            team_data = dm.get_team_performance(start_date, end_date)
             if not team_data.empty:
                 if category == "Alle roller":
                     fig = viz.plot_team_all_categories(team_data)
