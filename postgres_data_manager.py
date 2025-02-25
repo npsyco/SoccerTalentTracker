@@ -162,7 +162,9 @@ class PostgresDataManager:
                         WHEN 'D' THEN 1.0 
                     END::numeric as stottespiller_val
                 FROM matches
-                WHERE date IS NOT NULL  -- Only include rows with actual dates
+                WHERE date IS NOT NULL 
+                AND date != '1970-01-01'  -- Exclude Unix epoch
+                AND EXTRACT(YEAR FROM date) >= 2000  -- Reasonable date range
             ),
             match_averages AS (
                 SELECT 
@@ -179,7 +181,8 @@ class PostgresDataManager:
             )
             SELECT *
             FROM match_averages
-            WHERE date IS NOT NULL  -- Extra safety check
+            WHERE date IS NOT NULL
+            AND date != '1970-01-01'
             ORDER BY date, time
         """
         params = []
@@ -188,7 +191,7 @@ class PostgresDataManager:
             query = f"{query} AND date >= %s"
             params.append(start_date)
         if end_date:
-            query += " AND date <= %s" if start_date else " WHERE date <= %s"
+            query += " AND date <= %s"
             params.append(end_date)
 
         try:
