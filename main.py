@@ -189,7 +189,7 @@ def main():
                                 st.success(f"Spiller tilføjet: {player_name}")
                                 st.rerun()
                             else:
-                                st.error("Kunne ikke tilføje spiller")
+                                st.error(f"Spiller '{player_name}' findes allerede")
                     else:
                         st.error("Indtast venligst et spillernavn")
 

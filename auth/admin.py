@@ -222,23 +222,25 @@ def show_user_management():
         st.subheader("Brugeradgang")
         st.write("Vælg en bruger for at se og administrere deres data:")
 
+        users = get_all_users(auth_db)
         non_admin_users = [user for user in users if user["role_name"] != "admin"]
+
         if non_admin_users:
             selected_user = st.selectbox(
                 "Vælg bruger at administrere",
                 options=[user["username"] for user in non_admin_users]
             )
 
-            # Get the selected user's ID
+            # Get the selected user's data
             selected_user_data = next(
-                (user for user in non_admin_users if user["username"] == selected_user), 
+                (user for user in non_admin_users if user["username"] == selected_user),
                 None
             )
 
             col1, col2 = st.columns(2)
             with col1:
                 if st.button("Skift til bruger"):
-                    if selected_user_data:
+                    if selected_user_data and "id" in selected_user_data:
                         # Store both username and ID for impersonation
                         st.session_state.impersonated_user = selected_user
                         st.session_state.impersonated_user_id = selected_user_data["id"]
@@ -249,12 +251,14 @@ def show_user_management():
 
             with col2:
                 if st.button("Generer testdata"):
-                    if selected_user_data:
+                    if selected_user_data and "id" in selected_user_data:
                         from data_manager import DataManager
                         dm = DataManager()
-                        dm.generate_test_data(selected_user_data["id"])  # Pass user ID instead of username
+                        dm.generate_test_data(selected_user_data["id"])
                         st.success(f"Testdata genereret for {selected_user}")
                         st.rerun()
+                    else:
+                        st.error("Kunne ikke finde brugerdata")
 
         else:
             st.info("Ingen brugere at administrere")
@@ -275,7 +279,7 @@ def get_all_users(auth_db: AuthDB) -> List[Dict]:
         with psycopg2.connect(auth_db.conn_string) as conn:
             with conn.cursor(cursor_factory=DictCursor) as cur:
                 cur.execute("""
-                    SELECT u.username, u.email, u.created_at, r.name as role_name
+                    SELECT u.id, u.username, u.email, u.created_at, r.name as role_name
                     FROM users u
                     JOIN roles r ON u.role_id = r.id
                     WHERE u.status = 'active'
