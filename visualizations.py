@@ -10,10 +10,17 @@ class Visualizer:
             'Presspiller': '#99FF99',
             'Støttespiller': '#FFCC99'
         }
+        # Define the rating order for consistent display
+        self.rating_order = ['D', 'C', 'B', 'A']
 
     def plot_player_single_category(self, data, player_name, category):
         """Plot single category performance over time for a player"""
         fig = go.Figure()
+
+        # Convert ratings to categorical type with proper ordering
+        data[category] = pd.Categorical(data[category], 
+                                      categories=self.rating_order,
+                                      ordered=True)
 
         fig.add_trace(go.Scatter(
             x=data['Date'],
@@ -28,7 +35,12 @@ class Visualizer:
             title=f"{player_name}'s {category} udvikling over tid",
             xaxis_title="Dato",
             yaxis_title="Vurdering",
-            yaxis_range=['D', 'A'],
+            yaxis=dict(
+                ticktext=self.rating_order,
+                tickvals=self.rating_order,
+                categoryorder='array',
+                categoryarray=self.rating_order
+            ),
             height=500
         )
 
@@ -38,7 +50,11 @@ class Visualizer:
         """Plot all categories performance over time for a player"""
         fig = go.Figure()
 
+        # Convert all rating columns to categorical
         for category in ['Boldholder', 'Medspiller', 'Presspiller', 'Støttespiller']:
+            data[category] = pd.Categorical(data[category], 
+                                          categories=self.rating_order,
+                                          ordered=True)
             fig.add_trace(go.Scatter(
                 x=data['Date'],
                 y=data[category],
@@ -52,7 +68,12 @@ class Visualizer:
             title=f"{player_name}'s udvikling over tid",
             xaxis_title="Dato",
             yaxis_title="Vurdering",
-            yaxis_range=['D', 'A'],
+            yaxis=dict(
+                ticktext=self.rating_order,
+                tickvals=self.rating_order,
+                categoryorder='array',
+                categoryarray=self.rating_order
+            ),
             height=500
         )
 
@@ -61,6 +82,11 @@ class Visualizer:
     def plot_team_single_category(self, data, category):
         """Plot single category performance over time for the team"""
         fig = go.Figure()
+
+        # Ensure data is properly categorical
+        data[category] = pd.Categorical(data[category], 
+                                      categories=self.rating_order,
+                                      ordered=True)
 
         fig.add_trace(go.Scatter(
             x=data.index,
@@ -75,7 +101,12 @@ class Visualizer:
             title=f"Hold {category} udvikling over tid",
             xaxis_title="Dato",
             yaxis_title="Gennemsnit Vurdering",
-            yaxis_range=['D', 'A'],
+            yaxis=dict(
+                ticktext=self.rating_order,
+                tickvals=self.rating_order,
+                categoryorder='array',
+                categoryarray=self.rating_order
+            ),
             height=500
         )
 
@@ -85,7 +116,11 @@ class Visualizer:
         """Plot all categories performance over time for the team"""
         fig = go.Figure()
 
+        # Convert all categories to proper categorical type
         for category in ['Boldholder', 'Medspiller', 'Presspiller', 'Støttespiller']:
+            data[category] = pd.Categorical(data[category], 
+                                          categories=self.rating_order,
+                                          ordered=True)
             fig.add_trace(go.Scatter(
                 x=data.index,
                 y=data[category],
@@ -99,7 +134,12 @@ class Visualizer:
             title="Hold udvikling over tid",
             xaxis_title="Dato",
             yaxis_title="Gennemsnit Vurdering",
-            yaxis_range=['D', 'A'],
+            yaxis=dict(
+                ticktext=self.rating_order,
+                tickvals=self.rating_order,
+                categoryorder='array',
+                categoryarray=self.rating_order
+            ),
             height=500
         )
 
