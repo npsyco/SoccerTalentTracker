@@ -39,9 +39,11 @@ class Visualizer:
                 ticktext=self.rating_order,
                 tickvals=self.rating_order,
                 categoryorder='array',
-                categoryarray=self.rating_order
+                categoryarray=self.rating_order,
+                range=[-0.5, 3.5]  # Ensure full range is always shown
             ),
-            height=500
+            height=500,
+            showlegend=True
         )
 
         return fig
@@ -72,9 +74,11 @@ class Visualizer:
                 ticktext=self.rating_order,
                 tickvals=self.rating_order,
                 categoryorder='array',
-                categoryarray=self.rating_order
+                categoryarray=self.rating_order,
+                range=[-0.5, 3.5]  # Ensure full range is always shown
             ),
-            height=500
+            height=500,
+            showlegend=True
         )
 
         return fig
@@ -105,9 +109,11 @@ class Visualizer:
                 ticktext=self.rating_order,
                 tickvals=self.rating_order,
                 categoryorder='array',
-                categoryarray=self.rating_order
+                categoryarray=self.rating_order,
+                range=[-0.5, 3.5]  # Ensure full range is always shown
             ),
-            height=500
+            height=500,
+            showlegend=True
         )
 
         return fig
@@ -138,9 +144,11 @@ class Visualizer:
                 ticktext=self.rating_order,
                 tickvals=self.rating_order,
                 categoryorder='array',
-                categoryarray=self.rating_order
+                categoryarray=self.rating_order,
+                range=[-0.5, 3.5]  # Ensure full range is always shown
             ),
-            height=500
+            height=500,
+            showlegend=True
         )
 
         return fig

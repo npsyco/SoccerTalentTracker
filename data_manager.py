@@ -18,7 +18,7 @@ class DataManager:
             pd.DataFrame(columns=['Name', 'Position']).to_csv(self.players_file, index=False)
 
         if not os.path.exists(self.matches_file):
-            columns = ['Date', 'Opponent', 'Player', 'Boldholder', 'Medspiller', 'Presspiller', 'Støttespiller']
+            columns = ['Date', 'Time', 'Opponent', 'Player', 'Boldholder', 'Medspiller', 'Presspiller', 'Støttespiller']
             pd.DataFrame(columns=columns).to_csv(self.matches_file, index=False)
 
     def add_player(self, name, position):
@@ -44,7 +44,7 @@ class DataManager:
         """Get list of all players"""
         return pd.read_csv(self.players_file)
 
-    def add_match_record(self, date, opponent, players_df, ratings):
+    def add_match_record(self, date, time, opponent, players_df, ratings):
         """Add match performance records for selected players"""
         matches_df = pd.read_csv(self.matches_file)
 
@@ -53,6 +53,7 @@ class DataManager:
             player_name = player['Name']
             record = {
                 'Date': date.strftime('%Y-%m-%d'),
+                'Time': time.strftime('%H:%M'),
                 'Opponent': opponent,
                 'Player': player_name,
                 'Boldholder': ratings['Boldholder'][player_name],
@@ -73,6 +74,7 @@ class DataManager:
 
         if not player_data.empty:
             player_data['Date'] = pd.to_datetime(player_data['Date'])
+            player_data['Time'] = pd.to_datetime(player_data['Time'], format='%H:%M')
             if start_date:
                 player_data = player_data[player_data['Date'] >= start_date]
             if end_date:
@@ -86,7 +88,7 @@ class DataManager:
                     ordered=True
                 )
 
-        return player_data.sort_values('Date')
+        return player_data.sort_values(['Date', 'Time'])
 
     def get_available_seasons(self):
         """Get list of available seasons (years) from match data"""

@@ -65,6 +65,8 @@ def main():
             st.session_state.selected_players = []
         if 'match_date' not in st.session_state:
             st.session_state.match_date = None
+        if 'match_time' not in st.session_state:
+            st.session_state.match_time = None
         if 'opponent' not in st.session_state:
             st.session_state.opponent = None
 
@@ -74,6 +76,7 @@ def main():
                 st.subheader("Vælg kampdetaljer og spillere")
 
                 match_date = st.date_input("Dato", datetime.date.today())
+                match_time = st.time_input("Tidspunkt", datetime.time(12, 0))
                 opponent = st.text_input("Modstander (valgfrit)")
 
                 players_df = dm.get_players()
@@ -95,6 +98,7 @@ def main():
                         if len(selected_players_list) > 0:
                             st.session_state.selected_players = selected_players_list
                             st.session_state.match_date = match_date
+                            st.session_state.match_time = match_time
                             st.session_state.opponent = opponent
                             st.session_state.match_step = 2
                             st.rerun()
@@ -106,6 +110,7 @@ def main():
             with st.form("player_ratings"):
                 st.subheader("Spillervurdering")
                 st.write(f"Dato: {st.session_state.match_date}")
+                st.write(f"Tidspunkt: {st.session_state.match_time}")
                 st.write(f"Modstander: {st.session_state.opponent or 'Ikke angivet'}")
 
                 categories = ["Boldholder", "Medspiller", "Presspiller", "Støttespiller"]
@@ -141,11 +146,12 @@ def main():
                                 for player_name in st.session_state.selected_players
                             }
 
-                        # Save match record
+                        # Save match record with date and time
                         players_df = dm.get_players()
                         selected_players_df = players_df[players_df['Name'].isin(st.session_state.selected_players)]
                         dm.add_match_record(
                             st.session_state.match_date,
+                            st.session_state.match_time,
                             st.session_state.opponent or "Ikke angivet",
                             selected_players_df,
                             player_ratings
@@ -155,6 +161,7 @@ def main():
                         st.session_state.match_step = 1
                         st.session_state.selected_players = []
                         st.session_state.match_date = None
+                        st.session_state.match_time = None
                         st.session_state.opponent = None
                         st.success("Kampdata gemt!")
                         st.rerun()
