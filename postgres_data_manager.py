@@ -3,6 +3,7 @@ from psycopg2.extras import DictCursor
 import os
 from datetime import datetime
 import pandas as pd
+import streamlit as st  # Add for debug logging
 
 class PostgresDataManager:
     def __init__(self):
@@ -89,7 +90,6 @@ class PostgresDataManager:
     def get_player_performance(self, player_name, start_date=None, end_date=None):
         """Get performance history for a specific player within date range"""
         query = """
-            -- Get matches with complete ratings for a specific player
             SELECT 
                 m.date::date as date,
                 m.time::time as time,
@@ -103,26 +103,37 @@ class PostgresDataManager:
             WHERE p.name = %s
             AND m.date IS NOT NULL 
             AND m.date != '1970-01-01'::date
-            AND m.date >= '2000-01-01'::date
-            AND m.date <= CURRENT_DATE
             AND m.boldholder IN ('A', 'B', 'C', 'D')
             AND m.medspiller IN ('A', 'B', 'C', 'D')
             AND m.presspiller IN ('A', 'B', 'C', 'D')
             AND m.stottespiller IN ('A', 'B', 'C', 'D')
-            ORDER BY m.date, m.time
+            ORDER BY m.date::date, m.time::time
         """
         params = [player_name]
 
         if start_date:
-            query = query.replace("ORDER BY m.date, m.time", "AND m.date >= %s ORDER BY m.date, m.time")
+            query = query.replace("ORDER BY m.date::date, m.time::time", 
+                                "AND m.date >= %s ORDER BY m.date::date, m.time::time")
             params.append(start_date)
         if end_date:
-            query = query.replace("ORDER BY m.date, m.time", "AND m.date <= %s ORDER BY m.date, m.time")
+            query = query.replace("ORDER BY m.date::date, m.time::time", 
+                                "AND m.date <= %s ORDER BY m.date::date, m.time::time")
             params.append(end_date)
 
         try:
             with psycopg2.connect(self.conn_string) as conn:
+                # Debug: Print the exact SQL query being executed
+                st.write("### Debug: SQL Query")
+                st.write(query)
+                st.write("Parameters:", params)
+
                 df = pd.read_sql_query(query, conn, params=params)
+
+                # Debug: Print raw data from database before any processing
+                st.write("### Debug: Raw data from database")
+                st.write("All dates from query:", df['date'].unique().tolist())
+                st.write("Complete records:", df[['date', 'time']].to_dict('records'))
+
                 if not df.empty:
                     # Convert ratings to numeric values
                     for category in ['Boldholder', 'Medspiller', 'Presspiller', 'Støttespiller']:
@@ -131,6 +142,10 @@ class PostgresDataManager:
                     df['Date'] = df['date']
                     df['Time'] = df['time']
                     df = df.drop(['date', 'time'], axis=1)
+
+                    # Debug: Print processed data
+                    st.write("### Debug: Processed data")
+                    st.write("Final dates:", df['Date'].unique().tolist())
                 return df
         except psycopg2.Error as e:
             print(f"Error getting player performance: {e}")
