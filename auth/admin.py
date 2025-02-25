@@ -17,108 +17,167 @@ def show_user_management():
     # Initialize AuthDB
     auth_db = AuthDB()
 
-    # Get list of all users
-    users = get_all_users(auth_db)
+    # Tabs for different admin functions
+    tab1, tab2, tab3 = st.tabs(["Brugere", "Godkendelser", "Brugeradgang"])
 
-    # Show existing users in a table
-    if users:
-        st.subheader("Eksisterende Brugere")
+    with tab1:
+        # Get list of all active users
+        users = get_all_users(auth_db)
 
-        # Convert users to DataFrame for display
-        user_data = []
-        for user in users:
-            # Convert role names to Danish
-            role_name = {
-                'coach': 'Træner',
-                'assistant_coach': 'Assistent',
-                'observer': 'Tilskuer',
-                'admin': 'Administrator'
-            }.get(user["role_name"], user["role_name"])
+        # Show existing users in a table
+        if users:
+            st.subheader("Eksisterende Brugere")
 
-            user_data.append({
-                "Brugernavn": user["username"],
-                "Email": user["email"],
-                "Rolle": role_name,
-                "Oprettet": user["created_at"].strftime("%Y-%m-%d %H:%M") if user["created_at"] else "N/A"
-            })
+            # Convert users to DataFrame for display
+            user_data = []
+            for user in users:
+                # Convert role names to Danish
+                role_name = {
+                    'coach': 'Træner',
+                    'assistant_coach': 'Assistent',
+                    'observer': 'Tilskuer',
+                    'admin': 'Administrator'
+                }.get(user["role_name"], user["role_name"])
 
-        st.dataframe(user_data)
+                user_data.append({
+                    "Brugernavn": user["username"],
+                    "Email": user["email"],
+                    "Rolle": role_name,
+                    "Oprettet": user["created_at"].strftime("%Y-%m-%d %H:%M") if user["created_at"] else "N/A"
+                })
 
-    st.markdown("---")
+            st.dataframe(user_data)
 
-    # Create new user form
-    with st.form("create_user", clear_on_submit=True):
-        st.subheader("Opret ny bruger")
+        st.markdown("---")
 
-        username = st.text_input("Brugernavn")
-        email = st.text_input("Email")
-        password = st.text_input("Adgangskode", type="password")
-        role = st.selectbox(
-            "Rolle",
-            ["Træner", "Assistent", "Tilskuer"],
-            format_func=lambda x: x
-        )
+        # Create new user form
+        with st.form("create_user", clear_on_submit=True):
+            st.subheader("Opret ny bruger")
 
-        # Convert Danish role names back to database values
-        role_map = {
-            "Træner": "coach",
-            "Assistent": "assistant_coach",
-            "Tilskuer": "observer"
-        }
+            username = st.text_input("Brugernavn")
+            email = st.text_input("Email")
+            password = st.text_input("Adgangskode", type="password")
+            role = st.selectbox(
+                "Rolle",
+                ["Træner", "Assistent", "Tilskuer"],
+                format_func=lambda x: x
+            )
 
-        if st.form_submit_button("Opret bruger"):
-            if auth_db.create_user(username, password, email, role_map[role]):
-                st.success("Bruger oprettet!")
+            # Convert Danish role names back to database values
+            role_map = {
+                "Træner": "coach",
+                "Assistent": "assistant_coach",
+                "Tilskuer": "observer"
+            }
+
+            if st.form_submit_button("Opret bruger"):
+                if auth_db.create_user(username, password, email, role_map[role]):
+                    st.success("Bruger oprettet!")
+                    st.rerun()
+                else:
+                    st.error("Kunne ikke oprette bruger. Prøv et andet brugernavn eller email.")
+
+        st.markdown("---")
+
+        # Update/Delete user section
+        if users:
+            st.subheader("Opdater eller Slet Bruger")
+
+            # Select user to modify
+            usernames = [user["username"] for user in users if user["role_name"] != "admin"]
+            if usernames:
+                selected_user = st.selectbox("Vælg bruger", usernames)
+
+                col1, col2 = st.columns(2)
+
+                with col1:
+                    # Update user form
+                    with st.form("update_user"):
+                        st.subheader("Opdater Bruger")
+
+                        new_email = st.text_input("Ny Email")
+                        new_password = st.text_input("Ny Adgangskode", type="password")
+                        new_role = st.selectbox(
+                            "Ny Rolle",
+                            ["Træner", "Assistent", "Tilskuer"]
+                        )
+
+                        if st.form_submit_button("Opdater"):
+                            if update_user(auth_db, selected_user, new_email, new_password, role_map[new_role]):
+                                st.success("Bruger opdateret!")
+                                st.rerun()
+                            else:
+                                st.error("Kunne ikke opdatere bruger")
+
+                with col2:
+                    # Delete user section
+                    st.subheader("Slet Bruger")
+                    if st.button("Slet Bruger"):
+                        confirm_delete = st.button("Bekræft sletning")
+                        st.warning(f"Er du sikker på, at du vil slette brugeren '{selected_user}'?")
+
+                        if confirm_delete:
+                            if delete_user(auth_db, selected_user):
+                                st.success("Bruger slettet!")
+                                st.rerun()
+                            else:
+                                st.error("Kunne ikke slette bruger")
+
+    with tab2:
+        # Pending Users Approval
+        st.subheader("Ventende Godkendelser")
+        pending_users = auth_db.get_pending_users()
+
+        if pending_users:
+            for user in pending_users:
+                with st.container():
+                    col1, col2, col3, col4 = st.columns([2, 2, 1, 1])
+                    with col1:
+                        st.write(f"**{user['username']}**")
+                        st.write(f"Email: {user['email']}")
+                    with col2:
+                        st.write(f"Rolle: {role_map.get(user['role_name'], user['role_name'])}")
+                        st.write(f"Registreret: {user['created_at'].strftime('%Y-%m-%d %H:%M')}")
+                    with col3:
+                        if st.button("Godkend", key=f"approve_{user['username']}"):
+                            if auth_db.approve_user(user['username']):
+                                st.success("Bruger godkendt!")
+                                st.rerun()
+                    with col4:
+                        if st.button("Afvis", key=f"reject_{user['username']}"):
+                            if auth_db.reject_user(user['username']):
+                                st.success("Bruger afvist!")
+                                st.rerun()
+                    st.markdown("---")
+        else:
+            st.info("Ingen ventende godkendelser")
+
+    with tab3:
+        # User Impersonation
+        st.subheader("Brugeradgang")
+        st.write("Vælg en bruger for at se og administrere deres data:")
+
+        non_admin_users = [user for user in users if user["role_name"] != "admin"]
+        if non_admin_users:
+            selected_user = st.selectbox(
+                "Vælg bruger at administrere",
+                options=[user["username"] for user in non_admin_users]
+            )
+
+            if st.button("Skift til bruger"):
+                # Store the impersonated user in session state
+                st.session_state.impersonated_user = selected_user
+                st.success(f"Du administrerer nu {selected_user}'s data")
                 st.rerun()
-            else:
-                st.error("Kunne ikke oprette bruger. Prøv et andet brugernavn eller email.")
+        else:
+            st.info("Ingen brugere at administrere")
 
-    st.markdown("---")
-
-    # Update/Delete user section
-    if users:
-        st.subheader("Opdater eller Slet Bruger")
-
-        # Select user to modify
-        usernames = [user["username"] for user in users if user["role_name"] != "admin"]
-        if usernames:
-            selected_user = st.selectbox("Vælg bruger", usernames)
-
-            col1, col2 = st.columns(2)
-
-            with col1:
-                # Update user form
-                with st.form("update_user"):
-                    st.subheader("Opdater Bruger")
-
-                    new_email = st.text_input("Ny Email")
-                    new_password = st.text_input("Ny Adgangskode", type="password")
-                    new_role = st.selectbox(
-                        "Ny Rolle",
-                        ["Træner", "Assistent", "Tilskuer"]
-                    )
-
-                    if st.form_submit_button("Opdater"):
-                        if update_user(auth_db, selected_user, new_email, new_password, role_map[new_role]):
-                            st.success("Bruger opdateret!")
-                            st.rerun()
-                        else:
-                            st.error("Kunne ikke opdatere bruger")
-
-            with col2:
-                # Delete user section
-                st.subheader("Slet Bruger")
-                if st.button("Slet Bruger"):
-                    # Create a confirmation dialog
-                    confirm_delete = st.button("Bekræft sletning")
-                    st.warning(f"Er du sikker på, at du vil slette brugeren '{selected_user}'?")
-
-                    if confirm_delete:
-                        if delete_user(auth_db, selected_user):
-                            st.success("Bruger slettet!")
-                            st.rerun()
-                        else:
-                            st.error("Kunne ikke slette bruger")
+        # Show current impersonation status
+        if "impersonated_user" in st.session_state:
+            st.write(f"Du administrerer: **{st.session_state.impersonated_user}**")
+            if st.button("Afslut administration"):
+                del st.session_state.impersonated_user
+                st.rerun()
 
 def get_all_users(auth_db: AuthDB) -> List[Dict]:
     """Get all users with their roles"""

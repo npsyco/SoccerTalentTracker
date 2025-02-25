@@ -1,5 +1,6 @@
 import streamlit as st
 from auth.session import SessionManager
+from auth.database import AuthDB
 
 def show_login_page():
     # Hide sidebar and set minimal layout
@@ -51,6 +52,35 @@ def show_login_page():
                     st.rerun()
                 else:
                     st.error("Ugyldigt brugernavn eller adgangskode")
+
+        # Registration section with smaller text
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown("---")
+        st.markdown("<p style='font-size: 0.9em;'>Ny bruger? Registrer dig herunder:</p>", unsafe_allow_html=True)
+
+        # Registration form
+        with st.form("registration_form"):
+            new_username = st.text_input("Vælg brugernavn")
+            new_email = st.text_input("Email")
+            new_password = st.text_input("Vælg adgangskode", type="password")
+            role = st.selectbox(
+                "Vælg rolle",
+                ["Træner", "Assistent", "Tilskuer"]
+            )
+
+            # Map Danish roles to database roles
+            role_map = {
+                "Træner": "coach",
+                "Assistent": "assistant_coach",
+                "Tilskuer": "observer"
+            }
+
+            if st.form_submit_button("Registrer"):
+                auth_db = AuthDB()
+                if auth_db.register_user(new_username, new_password, new_email, role_map[role]):
+                    st.success("Registrering gennemført! Vent venligst på administrator godkendelse.")
+                else:
+                    st.error("Kunne ikke oprette bruger. Brugernavn eller email er måske allerede i brug.")
 
 def show_logout_button():
     session_manager = SessionManager()

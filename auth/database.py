@@ -4,7 +4,7 @@ from psycopg2.extras import DictCursor
 from datetime import datetime, timedelta
 from passlib.context import CryptContext
 from jose import JWTError, jwt
-from typing import Optional, Dict
+from typing import Optional, Dict, List
 import streamlit as st
 
 # Password hashing configuration
@@ -32,7 +32,7 @@ class AuthDB:
                     )
                 """)
 
-                # Create users table without using sequence
+                # Create users table without using sequence, add status field
                 cur.execute("""
                     CREATE TABLE IF NOT EXISTS users (
                         id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
@@ -40,6 +40,7 @@ class AuthDB:
                         password_hash VARCHAR(200) NOT NULL,
                         email VARCHAR(100) UNIQUE NOT NULL,
                         role_id INTEGER REFERENCES roles(id),
+                        status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'active', 'inactive')),
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                     )
                 """)
@@ -55,10 +56,9 @@ class AuthDB:
 
                 conn.commit()
 
-    def create_user(self, username: str, password: str, email: str, role: str) -> bool:
-        """Create a new user"""
+    def register_user(self, username: str, password: str, email: str, role: str) -> bool:
+        """Register a new user with pending status"""
         try:
-            # Create password hash
             password_hash = pwd_context.hash(password)
 
             with psycopg2.connect(self.conn_string) as conn:
@@ -69,26 +69,60 @@ class AuthDB:
                     if not role_id:
                         return False
 
-                    # For admin user, use ON CONFLICT DO UPDATE to ensure correct hash
-                    if role == 'admin':
-                        cur.execute("""
-                            INSERT INTO users (username, password_hash, email, role_id)
-                            VALUES (%s, %s, %s, %s)
-                            ON CONFLICT (username) 
-                            DO UPDATE SET password_hash = EXCLUDED.password_hash,
-                                        email = EXCLUDED.email,
-                                        role_id = EXCLUDED.role_id
-                            RETURNING id
-                        """, (username, password_hash, email, role_id[0]))
-                    else:
-                        cur.execute("""
-                            INSERT INTO users (username, password_hash, email, role_id)
-                            VALUES (%s, %s, %s, %s)
-                        """, (username, password_hash, email, role_id[0]))
+                    # Insert new user with pending status
+                    cur.execute("""
+                        INSERT INTO users (username, password_hash, email, role_id, status)
+                        VALUES (%s, %s, %s, %s, 'pending')
+                    """, (username, password_hash, email, role_id[0]))
 
                     conn.commit()
                     return True
 
+        except psycopg2.Error:
+            return False
+
+    def get_pending_users(self) -> List[Dict]:
+        """Get list of users pending approval"""
+        try:
+            with psycopg2.connect(self.conn_string) as conn:
+                with conn.cursor(cursor_factory=DictCursor) as cur:
+                    cur.execute("""
+                        SELECT u.username, u.email, u.created_at, r.name as role_name
+                        FROM users u
+                        JOIN roles r ON u.role_id = r.id
+                        WHERE u.status = 'pending'
+                        ORDER BY u.created_at DESC
+                    """)
+                    return [dict(row) for row in cur.fetchall()]
+        except psycopg2.Error:
+            return []
+
+    def approve_user(self, username: str) -> bool:
+        """Approve a pending user"""
+        try:
+            with psycopg2.connect(self.conn_string) as conn:
+                with conn.cursor() as cur:
+                    cur.execute("""
+                        UPDATE users
+                        SET status = 'active'
+                        WHERE username = %s AND status = 'pending'
+                    """, (username,))
+                    conn.commit()
+                    return True
+        except psycopg2.Error:
+            return False
+
+    def reject_user(self, username: str) -> bool:
+        """Reject a pending user"""
+        try:
+            with psycopg2.connect(self.conn_string) as conn:
+                with conn.cursor() as cur:
+                    cur.execute("""
+                        DELETE FROM users
+                        WHERE username = %s AND status = 'pending'
+                    """, (username,))
+                    conn.commit()
+                    return True
         except psycopg2.Error:
             return False
 
@@ -101,7 +135,7 @@ class AuthDB:
                         SELECT u.*, r.name as role_name
                         FROM users u
                         JOIN roles r ON u.role_id = r.id
-                        WHERE u.username = %s
+                        WHERE u.username = %s AND u.status = 'active'
                     """, (username,))
                     user = cur.fetchone()
 
