@@ -50,6 +50,11 @@ def show_login_page():
             if st.form_submit_button("Log ind"):
                 if session_manager.login_user(username, password):
                     st.success("Log ind succesfuld!")
+                    # Clear any existing impersonation data
+                    if "impersonated_user" in st.session_state:
+                        del st.session_state.impersonated_user
+                    if "impersonated_user_id" in st.session_state:
+                        del st.session_state.impersonated_user_id
                     st.rerun()
                 else:
                     st.error("Ugyldigt brugernavn eller adgangskode")
@@ -84,5 +89,10 @@ def show_login_page():
 def show_logout_button():
     session_manager = SessionManager()
     if st.button("Log ud", key="logout_button", type="secondary"):
+        # Clear any existing impersonation data
+        if "impersonated_user" in st.session_state:
+            del st.session_state.impersonated_user
+        if "impersonated_user_id" in st.session_state:
+            del st.session_state.impersonated_user_id
         session_manager.logout_user()
         st.rerun()
