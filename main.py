@@ -84,7 +84,6 @@ def main():
         handle_streamlit_error()
         st.stop()
 
-
     # Show login page if user is not logged in
     if not session_manager.get_current_user():
         show_login_page()
@@ -93,6 +92,9 @@ def main():
     # Initialize data manager and visualizer
     dm = DataManager()
     viz = Visualizer()
+
+    # Get current user ID (either actual user or impersonated user)
+    current_user_id = st.session_state.impersonated_user_id if "impersonated_user_id" in st.session_state else st.session_state.user['id']
 
     # Create top navigation bar with account info
     _, _, account_col = st.columns([1, 2, 1])
@@ -164,19 +166,19 @@ def main():
 
                 if st.form_submit_button("Tilføj Spiller"):
                     if player_name:
-                        # Set a default position as it's hidden for now
-                        dm.add_player(player_name, "Not specified")
+                        # Pass current_user_id when adding player
+                        dm.add_player(player_name, "Not specified", current_user_id)
                         st.success(f"Spiller tilføjet: {player_name}")
                     else:
                         st.error("Indtast venligst et spillernavn")
 
         with col2:
             st.subheader("Aktive Spillere")
-            players_df = dm.get_players()
+            # Pass current_user_id when getting players
+            players_df = dm.get_players(current_user_id)
             if not players_df.empty:
-                st.dataframe(players_df[['Name']])  # Only show name column
+                st.dataframe(players_df[['Name']])
 
-                # Delete player option
                 player_to_delete = st.selectbox("Vælg spiller fra listen der skal slettes", players_df['Name'].tolist())
 
                 # Initialize deletion state if not present
@@ -198,7 +200,8 @@ def main():
                     col1, col2 = st.columns(2)
                     with col1:
                         if st.button("Ja, slet spiller"):
-                            if dm.delete_player(st.session_state.player_to_delete):
+                            # Pass current_user_id when deleting player
+                            if dm.delete_player(st.session_state.player_to_delete, current_user_id):
                                 st.success(f"Spiller slettet: {st.session_state.player_to_delete}")
                                 # Reset deletion state
                                 st.session_state.delete_confirmation = False
@@ -239,7 +242,8 @@ def main():
                 match_time = st.time_input("Tidspunkt")
                 opponent = st.text_input("Modstander (valgfrit)")
 
-                players_df = dm.get_players()
+                # Pass current_user_id when getting players
+                players_df = dm.get_players(current_user_id)
                 if not players_df.empty:
                     st.subheader("Vælg spillere der deltog i kampen")
 
@@ -307,14 +311,16 @@ def main():
                             }
 
                         # Save match record with date and time
-                        players_df = dm.get_players()
+                        #Pass current_user_id when getting players
+                        players_df = dm.get_players(current_user_id)
                         selected_players_df = players_df[players_df['Name'].isin(st.session_state.selected_players)]
                         dm.add_match_record(
                             st.session_state.match_date,
                             st.session_state.match_time,
                             st.session_state.opponent or "Ikke angivet",
                             selected_players_df,
-                            player_ratings
+                            player_ratings,
+                            current_user_id
                         )
 
                         # Reset state and show success message
@@ -343,7 +349,7 @@ def main():
 
         with col2:
             # Get available seasons
-            available_seasons = dm.get_available_seasons()
+            available_seasons = dm.get_available_seasons(current_user_id)
             if available_seasons:
                 selected_season = st.selectbox(
                     "Vælg sæson",
@@ -364,7 +370,8 @@ def main():
                 end_date = None
 
         if analysis_type == "Individuel Spilleranalyse":
-            players_df = dm.get_players()
+            # Pass current_user_id when getting players
+            players_df = dm.get_players(current_user_id)
             if not players_df.empty:
                 player = st.selectbox("Vælg Spiller", players_df['Name'].tolist())
                 category = st.selectbox(
@@ -372,7 +379,8 @@ def main():
                     ["Alle roller", "Boldholder", "Medspiller", "Presspiller", "Støttespiller"]
                 )
 
-                player_data = dm.get_player_performance(player, start_date, end_date)
+                # Pass current_user_id when getting player performance
+                player_data = dm.get_player_performance(player, start_date, end_date, current_user_id)
                 if not player_data.empty:
                     if category == "Alle roller":
                         fig = viz.plot_player_all_categories(player_data, player)
@@ -391,12 +399,8 @@ def main():
                     st.info("Ingen data tilgængelig for denne spiller")
 
         elif analysis_type == "Holdanalyse":
-            category = st.selectbox(
-                "Vælg rolle",
-                ["Alle roller", "Boldholder", "Medspiller", "Presspiller", "Støttespiller"]
-            )
-
-            team_data = dm.get_team_performance(start_date, end_date)
+            # Pass current_user_id when getting team performance
+            team_data = dm.get_team_performance(start_date, end_date, current_user_id)
             if not team_data.empty:
                 if category == "Alle roller":
                     fig = viz.plot_team_all_categories(team_data)
@@ -415,7 +419,8 @@ def main():
                 st.info("Ingen holddata tilgængelig")
 
         else:  # Spillersammenligning
-            players_df = dm.get_players()
+            # Pass current_user_id when getting players for comparison
+            players_df = dm.get_players(current_user_id)
             if not players_df.empty:
                 st.write("### Vælg spillere at sammenligne")
                 st.write("Vælg op til 4 spillere at sammenligne ved at markere afkrydsningsfelterne nedenfor.")
@@ -451,7 +456,8 @@ def main():
                     # Get data for all selected players
                     player_data_dict = {}
                     for player_name in selected_players:
-                        player_data = dm.get_player_performance(player_name, start_date, end_date)
+                        # Pass current_user_id when getting player performance
+                        player_data = dm.get_player_performance(player_name, start_date, end_date, current_user_id)
                         if not player_data.empty:
                             player_data_dict[player_name] = player_data
 
