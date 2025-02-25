@@ -20,28 +20,28 @@ def main():
     # Create initial admin user if needed
     create_initial_admin()
 
-    with st.sidebar:
-        if session_manager.get_current_user():
-            st.write(f"Logget ind som: {st.session_state.user['username']}")
-            show_logout_button()
-            st.sidebar.divider()
-
     # Show login page if user is not logged in
     if not session_manager.get_current_user():
         show_login_page()
         return
+
+    # Show navigation and content only after login
+    with st.sidebar:
+        st.write(f"Logget ind som: {st.session_state.user['username']}")
+        show_logout_button()
+        st.sidebar.divider()
+
+        # Navigation menu
+        page = st.sidebar.selectbox(
+            "Navigation",
+            ["Spillere", "Kampdata", "Udviklingsanalyse"]
+        )
 
     # Initialize data manager and visualizer
     dm = DataManager()
     viz = Visualizer()
 
     st.title("Sorø-Freja Spiller Udviklingsværktøj")
-
-    # Sidebar navigation
-    page = st.sidebar.selectbox(
-        "Navigation",
-        ["Spillere", "Kampdata", "Udviklingsanalyse"]
-    )
 
     if page == "Spillere":
         # Require coach or admin role
@@ -78,7 +78,6 @@ def main():
                         dm.delete_player(player_to_delete)
                         st.success(f"Spiller slettet: {player_to_delete}")
                         st.rerun()
-
 
 
     elif page == "Kampdata":
