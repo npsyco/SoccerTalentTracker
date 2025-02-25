@@ -16,13 +16,28 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Hide top navigation menu
+# Hide all navigation elements and set core layout
 st.markdown("""
     <style>
+        /* Hide main menu and navigation */
         #MainMenu {visibility: hidden;}
         header {visibility: hidden;}
+        footer {visibility: hidden;}
+
+        /* Hide navigation bar */
+        section[data-testid="stSidebarNav"] {
+            display: none;
+        }
+
+        /* Hide toolbar */
         div[data-testid="stToolbar"] {
             display: none;
+        }
+
+        /* Adjust account info styling */
+        .stButton button[kind="secondary"] {
+            float: right;
+            margin-right: 10px;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -39,15 +54,14 @@ def main():
 
     # Show login page if user is not logged in
     if not session_manager.get_current_user():
-        # Hide sidebar for login page
-        st.markdown(
-            """
+        # Additional styling for login page
+        st.markdown("""
             <style>
-                [data-testid="stSidebar"][aria-expanded="true"]{
+                [data-testid="stSidebar"] {
                     display: none;
                 }
             </style>
-            """,
+            """, 
             unsafe_allow_html=True
         )
         show_login_page()
@@ -116,7 +130,6 @@ def main():
                         st.success(f"Spiller slettet: {player_to_delete}")
                         st.rerun()
 
-
     elif page == "Kampdata":
         # Require coach or assistant_coach role
         if not session_manager.require_role(['admin', 'coach', 'assistant_coach']):
@@ -141,8 +154,8 @@ def main():
             with st.form("select_players"):
                 st.subheader("Vælg kampdetaljer og spillere")
 
-                match_date = st.date_input("Dato", datetime.date.today())
-                match_time = st.time_input("Tidspunkt", datetime.time(12, 0))
+                match_date = st.date_input("Dato")
+                match_time = st.time_input("Tidspunkt")
                 opponent = st.text_input("Modstander (valgfrit)")
 
                 players_df = dm.get_players()
@@ -296,14 +309,6 @@ def main():
 
             team_data = dm.get_team_performance(start_date, end_date)
             if not team_data.empty:
-                # Temporary debug output
-                st.write("Debug: Team Performance Calculation")
-                matches_df = pd.read_csv('data/matches.csv')
-                st.write("Latest match ratings (Team Delta):")
-                st.dataframe(matches_df[matches_df['Opponent'] == 'Team Delta'])
-                st.write("Calculated team ratings:")
-                st.dataframe(team_data)
-
                 if category == "Alle roller":
                     fig = viz.plot_team_all_categories(team_data)
                 else:

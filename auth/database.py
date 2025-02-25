@@ -60,8 +60,6 @@ class AuthDB:
         try:
             # Create password hash
             password_hash = pwd_context.hash(password)
-            st.write(f"Debug - Creating user '{username}' with role '{role}'")
-            st.write(f"Debug - Generated password hash: {password_hash[:20]}...")
 
             with psycopg2.connect(self.conn_string) as conn:
                 with conn.cursor() as cur:
@@ -69,7 +67,6 @@ class AuthDB:
                     cur.execute("SELECT id FROM roles WHERE name = %s", (role,))
                     role_id = cur.fetchone()
                     if not role_id:
-                        st.error(f"Role '{role}' not found")
                         return False
 
                     # For admin user, use ON CONFLICT DO UPDATE to ensure correct hash
@@ -83,8 +80,6 @@ class AuthDB:
                                         role_id = EXCLUDED.role_id
                             RETURNING id
                         """, (username, password_hash, email, role_id[0]))
-                        user_id = cur.fetchone()
-                        st.write(f"Debug - Admin user created/updated with ID: {user_id[0]}")
                     else:
                         cur.execute("""
                             INSERT INTO users (username, password_hash, email, role_id)
@@ -92,18 +87,14 @@ class AuthDB:
                         """, (username, password_hash, email, role_id[0]))
 
                     conn.commit()
-                    st.success(f"User '{username}' created successfully")
                     return True
 
-        except psycopg2.Error as e:
-            st.error(f"Database error creating user: {str(e)}")
+        except psycopg2.Error:
             return False
 
     def verify_user(self, username: str, password: str) -> Optional[Dict]:
         """Verify user credentials and return user info if valid"""
         try:
-            st.write(f"Debug - Verifying user '{username}'")
-
             with psycopg2.connect(self.conn_string) as conn:
                 with conn.cursor(cursor_factory=DictCursor) as cur:
                     cur.execute("""
@@ -114,18 +105,11 @@ class AuthDB:
                     """, (username,))
                     user = cur.fetchone()
 
-                    if user:
-                        st.write("Debug - User found in database")
-                        is_valid = pwd_context.verify(password, user['password_hash'])
-                        st.write(f"Debug - Password verification result: {is_valid}")
-                        if is_valid:
-                            return dict(user)
-                    else:
-                        st.write("Debug - User not found in database")
+                    if user and pwd_context.verify(password, user['password_hash']):
+                        return dict(user)
                     return None
 
-        except psycopg2.Error as e:
-            st.error(f"Database error during verification: {str(e)}")
+        except psycopg2.Error:
             return None
 
     def create_access_token(self, data: dict) -> str:
