@@ -6,13 +6,13 @@ from utils import initialize_session_state
 from auth.session import SessionManager
 from auth.database import AuthDB
 from auth.admin import create_initial_admin
-from pages.login import show_login_page, show_logout_button
+from auth.login import show_login_page, show_logout_button
 from datetime import datetime
 
 # Must be the first Streamlit command
 st.set_page_config(
     page_title="Sorø-Freja Spiller Udviklingsværktøj",
-    layout="wide",
+    layout="centered",
     initial_sidebar_state="expanded"
 )
 
@@ -60,16 +60,6 @@ def main():
 
     # Show login page if user is not logged in
     if not session_manager.get_current_user():
-        # Additional styling for login page
-        st.markdown("""
-            <style>
-                [data-testid="stSidebar"] {
-                    display: none;
-                }
-            </style>
-            """, 
-            unsafe_allow_html=True
-        )
         show_login_page()
         return
 
