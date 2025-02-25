@@ -36,23 +36,30 @@ def create_initial_admin():
     """Create initial admin user if no users exist"""
     auth_db = AuthDB()
 
-    # Check if admin user exists
-    with psycopg2.connect(auth_db.conn_string) as conn:
-        with conn.cursor() as cur:
-            cur.execute("SELECT COUNT(*) FROM users")
-            user_count = cur.fetchone()[0]
+    try:
+        # Check if admin user exists
+        with psycopg2.connect(auth_db.conn_string) as conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT COUNT(*) FROM users")
+                user_count = cur.fetchone()[0]
 
-            if user_count == 0:
-                # Create admin user
-                auth_db.create_user(
-                    username="admin",
-                    password="admin",  # Should be changed immediately
-                    email="admin@example.com",
-                    role="admin"
-                )
-                st.warning("""
-                    Initial admin user created:
-                    Username: admin
-                    Password: admin
-                    Please log in and change the password immediately!
-                """)
+                if user_count == 0:
+                    # Create admin user
+                    success = auth_db.create_user(
+                        username="admin",
+                        password="admin",
+                        email="admin@example.com",
+                        role="admin"
+                    )
+
+                    if success:
+                        st.warning("""
+                            Initial admin user created:
+                            Username: admin
+                            Password: admin
+                            Please log in and change the password immediately!
+                        """)
+                    else:
+                        st.error("Failed to create initial admin user. Please check the logs.")
+    except Exception as e:
+        st.error(f"Error creating initial admin: {str(e)}")
