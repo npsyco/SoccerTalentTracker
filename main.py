@@ -7,8 +7,7 @@ from auth.session import SessionManager
 from auth.database import AuthDB
 from auth.admin import create_initial_admin
 from pages.login import show_login_page, show_logout_button
-
-st.set_page_config(page_title="Sorø-Freja Spiller Udviklingsværktøj", layout="wide")
+from datetime import datetime
 
 def main():
     # Initialize session state
@@ -22,8 +21,21 @@ def main():
 
     # Show login page if user is not logged in
     if not session_manager.get_current_user():
+        # Set minimal layout for login page
+        st.set_page_config(
+            page_title="Sorø-Freja Login",
+            layout="centered",
+            initial_sidebar_state="collapsed"
+        )
         show_login_page()
         return
+    else:
+        # Set full layout for main application
+        st.set_page_config(
+            page_title="Sorø-Freja Spiller Udviklingsværktøj",
+            layout="wide",
+            initial_sidebar_state="expanded"
+        )
 
     # Show navigation and content only after login
     with st.sidebar:

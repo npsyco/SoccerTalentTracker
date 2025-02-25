@@ -2,6 +2,13 @@ import streamlit as st
 from auth.session import SessionManager
 
 def show_login_page():
+    # Hide sidebar and set minimal layout
+    st.set_page_config(
+        page_title="Sorø-Freja Login",
+        layout="centered",
+        initial_sidebar_state="collapsed"
+    )
+
     session_manager = SessionManager()
 
     # Check if user is already logged in
