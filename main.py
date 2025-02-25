@@ -28,6 +28,12 @@ st.markdown("""
         section[data-testid="stSidebarNav"] {
             display: none;
         }
+        div[data-testid="stSidebarNavItems"] {
+            display: none;
+        }
+        .css-1d391kg {
+            display: none;
+        }
 
         /* Hide toolbar */
         div[data-testid="stToolbar"] {
