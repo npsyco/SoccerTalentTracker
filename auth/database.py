@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 from passlib.context import CryptContext
 from jose import JWTError, jwt
 from typing import Optional, Dict
+import streamlit as st
 
 # Password hashing configuration
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -57,6 +58,10 @@ class AuthDB:
     def create_user(self, username: str, password: str, email: str, role: str) -> bool:
         """Create a new user"""
         try:
+            # Hash the password before storing
+            password_hash = pwd_context.hash(password)
+            st.write(f"Debug: Creating user with hash: {password_hash}")  # Debug line
+
             with psycopg2.connect(self.conn_string) as conn:
                 with conn.cursor() as cur:
                     # Get role ID
@@ -65,9 +70,6 @@ class AuthDB:
                     if not role_id:
                         return False
 
-                    # Hash password
-                    password_hash = pwd_context.hash(password)
-
                     # Insert user
                     cur.execute("""
                         INSERT INTO users (username, password_hash, email, role_id)
@@ -75,7 +77,8 @@ class AuthDB:
                     """, (username, password_hash, email, role_id[0]))
                     conn.commit()
                     return True
-        except psycopg2.Error:
+        except psycopg2.Error as e:
+            st.error(f"Database error: {str(e)}")  # Debug line
             return False
 
     def verify_user(self, username: str, password: str) -> Optional[Dict]:
@@ -83,6 +86,9 @@ class AuthDB:
         try:
             with psycopg2.connect(self.conn_string) as conn:
                 with conn.cursor(cursor_factory=DictCursor) as cur:
+                    # Debug: Log attempt
+                    st.write(f"Debug: Attempting login for username: {username}")
+
                     cur.execute("""
                         SELECT u.*, r.name as role_name
                         FROM users u
@@ -91,10 +97,17 @@ class AuthDB:
                     """, (username,))
                     user = cur.fetchone()
 
-                    if user and pwd_context.verify(password, user['password_hash']):
-                        return dict(user)
+                    if user:
+                        st.write("Debug: User found in database")  # Debug line
+                        is_valid = pwd_context.verify(password, user['password_hash'])
+                        st.write(f"Debug: Password verification result: {is_valid}")  # Debug line
+                        if is_valid:
+                            return dict(user)
+                    else:
+                        st.write("Debug: User not found in database")  # Debug line
                     return None
-        except psycopg2.Error:
+        except psycopg2.Error as e:
+            st.error(f"Database error during verification: {str(e)}")  # Debug line
             return None
 
     def create_access_token(self, data: dict) -> str:
