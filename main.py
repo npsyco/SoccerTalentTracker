@@ -74,6 +74,14 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
+def get_current_user_id():
+    """Helper function to safely get current user ID"""
+    if "impersonated_user_id" in st.session_state:
+        return st.session_state.impersonated_user_id
+    elif "user" in st.session_state and st.session_state.user and "id" in st.session_state.user:
+        return st.session_state.user["id"]
+    return None
+
 def main():
     # Initialize session state
     try:
@@ -93,8 +101,12 @@ def main():
     dm = DataManager()
     viz = Visualizer()
 
-    # Get current user ID (either actual user or impersonated user)
-    current_user_id = st.session_state.impersonated_user_id if "impersonated_user_id" in st.session_state else st.session_state.user['id']
+    # Get current user ID safely
+    current_user_id = get_current_user_id()
+    if not current_user_id:
+        st.error("Bruger ID ikke fundet. Log venligst ud og ind igen.")
+        show_logout_button()
+        return
 
     # Create top navigation bar with account info
     _, _, account_col = st.columns([1, 2, 1])
