@@ -9,6 +9,21 @@ from auth.admin import create_initial_admin, show_user_management
 from auth.login import show_login_page, show_logout_button
 from datetime import datetime
 
+def handle_streamlit_error():
+    """Global error handler for unhandled exceptions"""
+    import sys
+    import traceback
+
+    exc_type, exc_value, exc_tb = sys.exc_info()
+
+    if exc_type is not None:
+        error_details = ''.join(traceback.format_exception(exc_type, exc_value, exc_tb))
+        st.error("Der opstod en fejl. Kontakt venligst systemadministrator.")
+
+        if st.session_state.user and st.session_state.user.get('role') == 'admin':
+            with st.expander("Tekniske detaljer"):
+                st.code(error_details)
+
 # Must be the first Streamlit command
 st.set_page_config(
     page_title="Sorø-Freja Spiller Udviklingsværktøj",
@@ -61,13 +76,14 @@ st.markdown("""
 
 def main():
     # Initialize session state
-    initialize_session_state()
+    try:
+        initialize_session_state()
+        session_manager = SessionManager()
+        create_initial_admin()
+    except Exception:
+        handle_streamlit_error()
+        st.stop()
 
-    # Initialize session manager
-    session_manager = SessionManager()
-
-    # Create initial admin user if needed
-    create_initial_admin()
 
     # Show login page if user is not logged in
     if not session_manager.get_current_user():
