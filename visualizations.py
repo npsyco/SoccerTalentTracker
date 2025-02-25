@@ -175,8 +175,6 @@ class Visualizer:
                 categoryarray=x_labels,
                 showgrid=False,
                 fixedrange=True,  # Disable zoom/pan
-                rangemode='tozero',  # Force exact range
-                constrain='domain',  # Ensure axis stays within its domain
                 dtick=1,  # Force tick for every category
                 automargin=True  # Adjust margins for labels
             ),
@@ -191,7 +189,7 @@ class Visualizer:
             showlegend=True,
             margin=dict(l=50, r=20, t=100, b=50),
             dragmode=False,  # Disable all drag interactions
-            staticPlot=True  # Make the plot completely static
+            modebar=dict(remove=["zoom", "pan", "select", "lasso2d", "zoomIn2d", "zoomOut2d", "autoScale2d", "resetScale2d"])
         )
 
         return fig
@@ -359,7 +357,7 @@ class Visualizer:
                 b=50,    # bottom margin
             ),
             dragmode=False, # Disable all drag interactions
-            staticPlot=True # Make the plot completely static
+            modebar=dict(remove=["zoom", "pan", "select", "lasso2d", "zoomIn2d", "zoomOut2d", "autoScale2d", "resetScale2d"])
         )
 
         return fig
@@ -436,7 +434,7 @@ class Visualizer:
             showlegend=True,
             margin=dict(l=50, r=20, t=100, b=50),
             dragmode=False,
-            staticPlot=True
+            modebar=dict(remove=["zoom", "pan", "select", "lasso2d", "zoomIn2d", "zoomOut2d", "autoScale2d", "resetScale2d"])
         )
         return fig
 
@@ -530,7 +528,7 @@ class Visualizer:
             ),
             margin=dict(l=50, r=20, t=100, b=50, pad=4),
             dragmode=False,  # Disable all drag interactions
-            staticPlot=True  # Make the plot completely static
+            modebar=dict(remove=["zoom", "pan", "select", "lasso2d", "zoomIn2d", "zoomOut2d", "autoScale2d", "resetScale2d"])
         )
 
         # Update all axes with strict configuration
