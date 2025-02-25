@@ -35,6 +35,9 @@ def main():
                 [data-testid="stSidebar"][aria-expanded="true"]{
                     display: none;
                 }
+                div[data-testid="stToolbar"] {
+                    display: none;
+                }
             </style>
             """,
             unsafe_allow_html=True
@@ -42,23 +45,32 @@ def main():
         show_login_page()
         return
 
-    # Show navigation and content only after login
-    with st.sidebar:
-        st.write(f"Logget ind som: {st.session_state.user['username']}")
-        show_logout_button()
-        st.sidebar.divider()
-
-        # Navigation menu
-        page = st.sidebar.selectbox(
-            "Navigation",
-            ["Spillere", "Kampdata", "Udviklingsanalyse"]
-        )
-
     # Initialize data manager and visualizer
     dm = DataManager()
     viz = Visualizer()
 
+    # Create top navigation bar with account info
+    _, _, account_col = st.columns([1, 2, 1])
+    with account_col:
+        st.markdown(
+            f"""
+            <div style="text-align: right;">
+                <span style="margin-right: 10px;">Logget ind som: {st.session_state.user['username']}</span>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+        show_logout_button()
+
     st.title("Sorø-Freja Spiller Udviklingsværktøj")
+
+    # Show navigation and content
+    with st.sidebar:
+        # Navigation menu
+        page = st.selectbox(
+            "Navigation",
+            ["Spillere", "Kampdata", "Udviklingsanalyse"]
+        )
 
     if page == "Spillere":
         # Require coach or admin role

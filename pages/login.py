@@ -15,6 +15,10 @@ def show_login_page():
             div[data-testid="stToolbar"] {
                 display: none;
             }
+            button[kind="secondary"] {
+                float: right;
+                margin-right: 10px;
+            }
         </style>
         """,
         unsafe_allow_html=True
@@ -50,6 +54,6 @@ def show_login_page():
 
 def show_logout_button():
     session_manager = SessionManager()
-    if st.sidebar.button("Log ud"):
+    if st.button("Log ud", key="logout_button", type="secondary"):
         session_manager.logout_user()
         st.rerun()
