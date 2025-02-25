@@ -5,6 +5,7 @@ from visualizations import Visualizer
 from utils import initialize_session_state
 from auth.session import SessionManager
 from auth.database import AuthDB
+from auth.admin import create_initial_admin
 from pages.login import show_login_page, show_logout_button
 
 st.set_page_config(page_title="Sorø-Freja Spiller Udviklingsværktøj", layout="wide")
@@ -17,7 +18,8 @@ def main():
     session_manager = SessionManager()
 
     # Create initial admin user if needed
-    auth_db = AuthDB()
+    create_initial_admin()
+
     with st.sidebar:
         if session_manager.get_current_user():
             st.write(f"Logget ind som: {st.session_state.user['username']}")
@@ -76,6 +78,7 @@ def main():
                         dm.delete_player(player_to_delete)
                         st.success(f"Spiller slettet: {player_to_delete}")
                         st.rerun()
+
 
 
     elif page == "Kampdata":

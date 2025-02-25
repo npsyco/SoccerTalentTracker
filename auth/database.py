@@ -58,9 +58,10 @@ class AuthDB:
     def create_user(self, username: str, password: str, email: str, role: str) -> bool:
         """Create a new user"""
         try:
-            # Hash the password before storing
+            # Create password hash
             password_hash = pwd_context.hash(password)
-            st.write(f"Debug: Creating user with hash: {password_hash}")  # Debug line
+            st.write(f"Debug - Creating user '{username}' with role '{role}'")
+            st.write(f"Debug - Generated password hash: {password_hash[:20]}...")
 
             with psycopg2.connect(self.conn_string) as conn:
                 with conn.cursor() as cur:
@@ -68,27 +69,43 @@ class AuthDB:
                     cur.execute("SELECT id FROM roles WHERE name = %s", (role,))
                     role_id = cur.fetchone()
                     if not role_id:
+                        st.error(f"Role '{role}' not found")
                         return False
 
-                    # Insert user
-                    cur.execute("""
-                        INSERT INTO users (username, password_hash, email, role_id)
-                        VALUES (%s, %s, %s, %s)
-                    """, (username, password_hash, email, role_id[0]))
+                    # For admin user, use ON CONFLICT DO UPDATE to ensure correct hash
+                    if role == 'admin':
+                        cur.execute("""
+                            INSERT INTO users (username, password_hash, email, role_id)
+                            VALUES (%s, %s, %s, %s)
+                            ON CONFLICT (username) 
+                            DO UPDATE SET password_hash = EXCLUDED.password_hash,
+                                        email = EXCLUDED.email,
+                                        role_id = EXCLUDED.role_id
+                            RETURNING id
+                        """, (username, password_hash, email, role_id[0]))
+                        user_id = cur.fetchone()
+                        st.write(f"Debug - Admin user created/updated with ID: {user_id[0]}")
+                    else:
+                        cur.execute("""
+                            INSERT INTO users (username, password_hash, email, role_id)
+                            VALUES (%s, %s, %s, %s)
+                        """, (username, password_hash, email, role_id[0]))
+
                     conn.commit()
+                    st.success(f"User '{username}' created successfully")
                     return True
+
         except psycopg2.Error as e:
-            st.error(f"Database error: {str(e)}")  # Debug line
+            st.error(f"Database error creating user: {str(e)}")
             return False
 
     def verify_user(self, username: str, password: str) -> Optional[Dict]:
         """Verify user credentials and return user info if valid"""
         try:
+            st.write(f"Debug - Verifying user '{username}'")
+
             with psycopg2.connect(self.conn_string) as conn:
                 with conn.cursor(cursor_factory=DictCursor) as cur:
-                    # Debug: Log attempt
-                    st.write(f"Debug: Attempting login for username: {username}")
-
                     cur.execute("""
                         SELECT u.*, r.name as role_name
                         FROM users u
@@ -98,16 +115,17 @@ class AuthDB:
                     user = cur.fetchone()
 
                     if user:
-                        st.write("Debug: User found in database")  # Debug line
+                        st.write("Debug - User found in database")
                         is_valid = pwd_context.verify(password, user['password_hash'])
-                        st.write(f"Debug: Password verification result: {is_valid}")  # Debug line
+                        st.write(f"Debug - Password verification result: {is_valid}")
                         if is_valid:
                             return dict(user)
                     else:
-                        st.write("Debug: User not found in database")  # Debug line
+                        st.write("Debug - User not found in database")
                     return None
+
         except psycopg2.Error as e:
-            st.error(f"Database error during verification: {str(e)}")  # Debug line
+            st.error(f"Database error during verification: {str(e)}")
             return None
 
     def create_access_token(self, data: dict) -> str:

@@ -54,12 +54,12 @@ def create_initial_admin():
 
                     if success:
                         st.warning("""
-                            Initial admin user created:
+                            Initial admin user created with these credentials:
                             Username: admin
                             Password: admin
                             Please log in and change the password immediately!
                         """)
                     else:
-                        st.error("Failed to create initial admin user. Please check the logs.")
+                        st.error("Failed to create initial admin user")
     except Exception as e:
         st.error(f"Error creating initial admin: {str(e)}")
