@@ -10,7 +10,7 @@ st.set_page_config(page_title="Sorø-Freja Spiller Udviklingsværktøj", layout=
 def main():
     # Initialize session state
     initialize_session_state()
-    
+
     # Initialize data manager
     dm = DataManager()
     viz = Visualizer()
@@ -20,117 +20,115 @@ def main():
     # Sidebar navigation
     page = st.sidebar.selectbox(
         "Navigation",
-        ["Player Management", "Match Records", "Performance Analysis"]
+        ["Spillere", "Kampdata", "Udviklingsanalyse"]
     )
 
-    if page == "Player Management":
-        st.header("Player Management")
-        
+    if page == "Spillere":
+        st.header("Spillere")
+
         col1, col2 = st.columns([1, 2])
-        
+
         with col1:
             with st.form("add_player"):
-                st.subheader("Add New Player")
-                player_name = st.text_input("Player Name")
-                position = st.selectbox("Position", ["Forward", "Midfielder", "Defender", "Goalkeeper"])
-                
-                if st.form_submit_button("Add Player"):
+                st.subheader("Tilføj spiller")
+                player_name = st.text_input("Spiller navn")
+
+                if st.form_submit_button("Tilføj Spiller"):
                     if player_name:
-                        dm.add_player(player_name, position)
-                        st.success(f"Added player: {player_name}")
+                        # Set a default position as it's hidden for now
+                        dm.add_player(player_name, "Not specified")
+                        st.success(f"Spiller tilføjet: {player_name}")
                     else:
-                        st.error("Please enter a player name")
+                        st.error("Indtast venligst et spillernavn")
 
         with col2:
-            st.subheader("Current Players")
+            st.subheader("Aktive Spillere")
             players_df = dm.get_players()
             if not players_df.empty:
-                st.dataframe(players_df)
-                
-                # Delete player option
-                player_to_delete = st.selectbox("Select player to delete", players_df['Name'].tolist())
-                if st.button("Delete Player"):
-                    dm.delete_player(player_to_delete)
-                    st.success(f"Deleted player: {player_to_delete}")
-                    st.rerun()
+                st.dataframe(players_df[['Name']])  # Only show name column
 
-    elif page == "Match Records":
-        st.header("Match Records")
-        
+                # Delete player option
+                player_to_delete = st.selectbox("Vælg spiller fra listen der skal slettes", players_df['Name'].tolist())
+                if st.button("Slet Spiller"):
+                    if st.warning("Advarsel: Hvis du bekræfter slettes denne spiller og alle spillerens data"):
+                        dm.delete_player(player_to_delete)
+                        st.success(f"Spiller slettet: {player_to_delete}")
+                        st.rerun()
+
+    elif page == "Kampdata":
+        st.header("Kampe")
+
         with st.form("add_match_record"):
-            st.subheader("Add Match Performance")
-            
-            match_date = st.date_input("Match Date", datetime.date.today())
-            opponent = st.text_input("Opponent Team")
-            
+            st.subheader("Gem kampdata")
+
+            match_date = st.date_input("Dato", datetime.date.today())
+            opponent = st.text_input("Modstander (valgfrit)")
+
             players_df = dm.get_players()
             if not players_df.empty:
-                st.subheader("Player Ratings")
-                
+                st.subheader("Spillervurdering")
+
+                categories = ["Boldholder", "Medspiller", "Presspiller", "Støttespiller"]
+                ratings = {}
+
                 for _, player in players_df.iterrows():
                     st.write(f"### {player['Name']}")
                     cols = st.columns(4)
-                    
-                    categories = ["Technical", "Tactical", "Physical", "Mental"]
-                    ratings = {}
-                    
+
                     for i, category in enumerate(categories):
                         with cols[i]:
-                            ratings[category] = st.slider(
+                            ratings[category] = st.selectbox(
                                 f"{category}",
-                                1, 10, 5,
+                                ["A", "B", "C", "D"],
                                 key=f"{player['Name']}_{category}"
                             )
-                
-                if st.form_submit_button("Save Match Records"):
-                    if opponent:
-                        dm.add_match_record(match_date, opponent, players_df, ratings)
-                        st.success("Match records saved successfully!")
-                    else:
-                        st.error("Please enter opponent team name")
 
-    else:  # Performance Analysis
-        st.header("Performance Analysis")
-        
+                if st.form_submit_button("Gem Kampdata"):
+                    dm.add_match_record(match_date, opponent or "Ikke angivet", players_df, ratings)
+                    st.success("Kampdata gemt!")
+
+    else:  # Udviklingsanalyse
+        st.header("Udviklingsanalyse")
+
         analysis_type = st.radio(
-            "Select Analysis Type",
-            ["Individual Player Analysis", "Team Analysis"]
+            "Vælg analysetype",
+            ["Individuel Spilleranalyse", "Holdanalyse"]
         )
-        
-        if analysis_type == "Individual Player Analysis":
+
+        if analysis_type == "Individuel Spilleranalyse":
             players_df = dm.get_players()
             if not players_df.empty:
-                player = st.selectbox("Select Player", players_df['Name'].tolist())
+                player = st.selectbox("Vælg Spiller", players_df['Name'].tolist())
                 category = st.selectbox(
-                    "Select Category",
-                    ["All Categories", "Technical", "Tactical", "Physical", "Mental"]
+                    "Vælg rolle",
+                    ["Alle roller", "Boldholder", "Medspiller", "Presspiller", "Støttespiller"]
                 )
-                
+
                 player_data = dm.get_player_performance(player)
                 if not player_data.empty:
-                    if category == "All Categories":
+                    if category == "Alle roller":
                         fig = viz.plot_player_all_categories(player_data, player)
                     else:
                         fig = viz.plot_player_single_category(player_data, player, category)
                     st.plotly_chart(fig)
                 else:
-                    st.info("No performance data available for this player")
-        
-        else:  # Team Analysis
+                    st.info("Ingen data tilgængelig for denne spiller")
+
+        else:  # Holdanalyse
             category = st.selectbox(
-                "Select Category",
-                ["All Categories", "Technical", "Tactical", "Physical", "Mental"]
+                "Vælg rolle",
+                ["Alle roller", "Boldholder", "Medspiller", "Presspiller", "Støttespiller"]
             )
-            
+
             team_data = dm.get_team_performance()
             if not team_data.empty:
-                if category == "All Categories":
+                if category == "Alle roller":
                     fig = viz.plot_team_all_categories(team_data)
                 else:
                     fig = viz.plot_team_single_category(team_data, category)
                 st.plotly_chart(fig)
             else:
-                st.info("No team performance data available")
+                st.info("Ingen holddata tilgængelig")
 
 if __name__ == "__main__":
     main()

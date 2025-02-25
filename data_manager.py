@@ -17,7 +17,7 @@ class DataManager:
             pd.DataFrame(columns=['Name', 'Position']).to_csv(self.players_file, index=False)
 
         if not os.path.exists(self.matches_file):
-            columns = ['Date', 'Opponent', 'Player', 'Technical', 'Tactical', 'Physical', 'Mental']
+            columns = ['Date', 'Opponent', 'Player', 'Boldholder', 'Medspiller', 'Presspiller', 'Støttespiller']
             pd.DataFrame(columns=columns).to_csv(self.matches_file, index=False)
 
     def add_player(self, name, position):
@@ -53,10 +53,10 @@ class DataManager:
                 'Date': date.strftime('%Y-%m-%d'),
                 'Opponent': opponent,
                 'Player': player['Name'],
-                'Technical': ratings['Technical'],
-                'Tactical': ratings['Tactical'],
-                'Physical': ratings['Physical'],
-                'Mental': ratings['Mental']
+                'Boldholder': ratings['Boldholder'],
+                'Medspiller': ratings['Medspiller'],
+                'Presspiller': ratings['Presspiller'],
+                'Støttespiller': ratings['Støttespiller']
             }
             new_records.append(record)
 
@@ -75,10 +75,21 @@ class DataManager:
         if matches_df.empty:
             return pd.DataFrame()
 
-        # Convert rating columns to numeric
-        numeric_columns = ['Technical', 'Tactical', 'Physical', 'Mental']
-        for col in numeric_columns:
-            matches_df[col] = pd.to_numeric(matches_df[col], errors='coerce')
+        # Convert rating columns to categorical with custom ordering
+        categories = ['Boldholder', 'Medspiller', 'Presspiller', 'Støttespiller']
+        for col in categories:
+            matches_df[col] = pd.Categorical(matches_df[col], categories=['D', 'C', 'B', 'A'], ordered=True)
+            matches_df[col] = matches_df[col].cat.codes  # Convert to numeric (0-3)
 
-        # Group by date and calculate mean of only numeric columns
-        return matches_df.groupby('Date')[numeric_columns].mean()
+        # Group by date and calculate mean
+        team_performance = matches_df.groupby('Date')[categories].mean()
+
+        # Convert back to letters
+        for col in categories:
+            team_performance[col] = pd.Categorical.from_codes(
+                team_performance[col].round().astype(int),
+                categories=['D', 'C', 'B', 'A'],
+                ordered=True
+            )
+
+        return team_performance
