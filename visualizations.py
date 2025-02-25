@@ -91,6 +91,9 @@ class Visualizer:
 
     def plot_player_all_categories(self, data, player_name):
         """Plot all categories performance over time for a player"""
+        if data.empty:
+            return go.Figure()  # Return empty figure if no data
+
         fig = go.Figure()
 
         # Format x-axis labels to include time when multiple matches on same date
@@ -124,13 +127,15 @@ class Visualizer:
                 )
 
         for category in ['Boldholder', 'Medspiller', 'Presspiller', 'Støttespiller']:
+            y_values = data[category]
             fig.add_trace(go.Scatter(
                 x=x_labels,
-                y=data[category],
+                y=y_values,
                 mode='lines+markers',
                 name=category,
                 line=dict(color=self.colors[category], width=2),
-                marker=dict(size=8)
+                marker=dict(size=8),
+                hovertemplate="Dato: %{x}<br>" + f"{category}: %{{y}}<extra></extra>"
             ))
 
         fig.update_layout(

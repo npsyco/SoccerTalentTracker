@@ -89,51 +89,35 @@ class PostgresDataManager:
     def get_player_performance(self, player_name, start_date=None, end_date=None):
         """Get performance history for a specific player within date range"""
         query = """
-            WITH distinct_valid_dates AS (
-                -- First get distinct dates that have complete match data for this player
-                SELECT DISTINCT 
-                    m.date::date as date,
-                    m.time::time as time
-                FROM matches m
-                JOIN players p ON m.player_id = p.id
-                WHERE p.name = %s
-                AND m.date IS NOT NULL 
-                AND m.date != '1970-01-01'::date
-                AND m.date >= '2000-01-01'::date
-                AND m.date <= CURRENT_DATE
-                AND m.boldholder IS NOT NULL
-                AND m.medspiller IS NOT NULL
-                AND m.presspiller IS NOT NULL
-                AND m.stottespiller IS NOT NULL
-            ),
-            valid_matches AS (
-                -- Join back to get only matches on valid dates
-                SELECT 
-                    m.date::date as date,
-                    m.time::time as time,
-                    m.opponent,
-                    m.boldholder as "Boldholder",
-                    m.medspiller as "Medspiller",
-                    m.presspiller as "Presspiller",
-                    m.stottespiller as "Støttespiller"
-                FROM matches m
-                JOIN players p ON m.player_id = p.id
-                INNER JOIN distinct_valid_dates d 
-                    ON m.date::date = d.date 
-                    AND (m.time::time = d.time OR (m.time IS NULL AND d.time IS NULL))
-                WHERE p.name = %s
-            )
-            SELECT * FROM valid_matches
-            ORDER BY date, time
+            -- Get matches with complete ratings for a specific player
+            SELECT 
+                m.date::date as date,
+                m.time::time as time,
+                m.opponent,
+                m.boldholder as "Boldholder",
+                m.medspiller as "Medspiller",
+                m.presspiller as "Presspiller",
+                m.stottespiller as "Støttespiller"
+            FROM matches m
+            JOIN players p ON m.player_id = p.id
+            WHERE p.name = %s
+            AND m.date IS NOT NULL 
+            AND m.date != '1970-01-01'::date
+            AND m.date >= '2000-01-01'::date
+            AND m.date <= CURRENT_DATE
+            AND m.boldholder IN ('A', 'B', 'C', 'D')
+            AND m.medspiller IN ('A', 'B', 'C', 'D')
+            AND m.presspiller IN ('A', 'B', 'C', 'D')
+            AND m.stottespiller IN ('A', 'B', 'C', 'D')
+            ORDER BY m.date, m.time
         """
-        # Need to pass player_name twice because it's used in both CTEs
-        params = [player_name, player_name]
+        params = [player_name]
 
         if start_date:
-            query = query.replace("ORDER BY date, time", "AND date >= %s ORDER BY date, time")
+            query = query.replace("ORDER BY m.date, m.time", "AND m.date >= %s ORDER BY m.date, m.time")
             params.append(start_date)
         if end_date:
-            query = query.replace("ORDER BY date, time", "AND date <= %s ORDER BY date, time")
+            query = query.replace("ORDER BY m.date, m.time", "AND m.date <= %s ORDER BY m.date, m.time")
             params.append(end_date)
 
         try:
@@ -143,7 +127,7 @@ class PostgresDataManager:
                     # Convert ratings to numeric values
                     for category in ['Boldholder', 'Medspiller', 'Presspiller', 'Støttespiller']:
                         df[category] = df[category].map(self.rating_map)
-                    # Keep date and time as is, since they're already properly formatted by Postgres
+                    # Keep date and time as is since they're already properly formatted by Postgres
                     df['Date'] = df['date']
                     df['Time'] = df['time']
                     df = df.drop(['date', 'time'], axis=1)
@@ -155,85 +139,66 @@ class PostgresDataManager:
     def get_team_performance(self, start_date=None, end_date=None):
         """Get team's overall performance history within date range"""
         query = """
-            WITH distinct_valid_dates AS (
-                -- First get distinct dates that have complete match data
-                SELECT DISTINCT 
-                    date::date as date,
-                    time::time as time
-                FROM matches 
-                WHERE date IS NOT NULL 
-                AND date != '1970-01-01'::date
-                AND date >= '2000-01-01'::date
-                AND date <= CURRENT_DATE
-                AND boldholder IS NOT NULL
-                AND medspiller IS NOT NULL
-                AND presspiller IS NOT NULL
-                AND stottespiller IS NOT NULL
-            ),
-            valid_matches AS (
-                -- Join back to get only matches on valid dates
-                SELECT m.*
+            -- Get matches with complete ratings and calculate team averages
+            WITH valid_matches AS (
+                SELECT 
+                    m.date::date as date,
+                    m.time::time as time
                 FROM matches m
-                INNER JOIN distinct_valid_dates d 
-                    ON m.date::date = d.date 
-                    AND (m.time::time = d.time OR (m.time IS NULL AND d.time IS NULL))
-                WHERE m.boldholder IS NOT NULL
-                AND m.medspiller IS NOT NULL
-                AND m.presspiller IS NOT NULL
-                AND m.stottespiller IS NOT NULL
-            ),
-            match_ratings AS (
-                SELECT 
-                    date::date as date,
-                    time::time as time,
-                    CASE boldholder 
-                        WHEN 'A' THEN 4.0 
-                        WHEN 'B' THEN 3.0 
-                        WHEN 'C' THEN 2.0 
-                        WHEN 'D' THEN 1.0 
-                    END::numeric as boldholder_val,
-                    CASE medspiller 
-                        WHEN 'A' THEN 4.0 
-                        WHEN 'B' THEN 3.0 
-                        WHEN 'C' THEN 2.0 
-                        WHEN 'D' THEN 1.0 
-                    END::numeric as medspiller_val,
-                    CASE presspiller 
-                        WHEN 'A' THEN 4.0 
-                        WHEN 'B' THEN 3.0 
-                        WHEN 'C' THEN 2.0 
-                        WHEN 'D' THEN 1.0 
-                    END::numeric as presspiller_val,
-                    CASE stottespiller 
-                        WHEN 'A' THEN 4.0 
-                        WHEN 'B' THEN 3.0 
-                        WHEN 'C' THEN 2.0 
-                        WHEN 'D' THEN 1.0 
-                    END::numeric as stottespiller_val
-                FROM valid_matches
-            ),
-            match_averages AS (
-                SELECT 
-                    date,
-                    time,
-                    ROUND(AVG(boldholder_val)::numeric, 2) as "Boldholder",
-                    ROUND(AVG(medspiller_val)::numeric, 2) as "Medspiller",
-                    ROUND(AVG(presspiller_val)::numeric, 2) as "Presspiller",
-                    ROUND(AVG(stottespiller_val)::numeric, 2) as "Støttespiller"
-                FROM match_ratings
-                GROUP BY date, time
-                HAVING COUNT(*) > 0
+                WHERE m.date IS NOT NULL 
+                AND m.date != '1970-01-01'::date
+                AND m.date >= '2000-01-01'::date
+                AND m.date <= CURRENT_DATE
+                AND m.boldholder IN ('A', 'B', 'C', 'D')
+                AND m.medspiller IN ('A', 'B', 'C', 'D')
+                AND m.presspiller IN ('A', 'B', 'C', 'D')
+                AND m.stottespiller IN ('A', 'B', 'C', 'D')
             )
-            SELECT * FROM match_averages
-            ORDER BY date, time
+            SELECT 
+                v.date,
+                v.time,
+                ROUND(AVG(
+                    CASE m.boldholder 
+                        WHEN 'A' THEN 4.0 
+                        WHEN 'B' THEN 3.0 
+                        WHEN 'C' THEN 2.0 
+                        WHEN 'D' THEN 1.0 
+                    END)::numeric, 2) as "Boldholder",
+                ROUND(AVG(
+                    CASE m.medspiller 
+                        WHEN 'A' THEN 4.0 
+                        WHEN 'B' THEN 3.0 
+                        WHEN 'C' THEN 2.0 
+                        WHEN 'D' THEN 1.0 
+                    END)::numeric, 2) as "Medspiller",
+                ROUND(AVG(
+                    CASE m.presspiller 
+                        WHEN 'A' THEN 4.0 
+                        WHEN 'B' THEN 3.0 
+                        WHEN 'C' THEN 2.0 
+                        WHEN 'D' THEN 1.0 
+                    END)::numeric, 2) as "Presspiller",
+                ROUND(AVG(
+                    CASE m.stottespiller 
+                        WHEN 'A' THEN 4.0 
+                        WHEN 'B' THEN 3.0 
+                        WHEN 'C' THEN 2.0 
+                        WHEN 'D' THEN 1.0 
+                    END)::numeric, 2) as "Støttespiller"
+            FROM valid_matches v
+            JOIN matches m ON v.date = m.date::date AND 
+                            (v.time = m.time::time OR (v.time IS NULL AND m.time IS NULL))
+            GROUP BY v.date, v.time
+            HAVING COUNT(*) > 0
+            ORDER BY v.date, v.time
         """
         params = []
 
         if start_date:
-            query = query.replace("ORDER BY date, time", "AND date >= %s ORDER BY date, time")
+            query = query.replace("ORDER BY v.date, v.time", "AND v.date >= %s ORDER BY v.date, v.time")
             params.append(start_date)
         if end_date:
-            query = query.replace("ORDER BY date, time", "AND date <= %s ORDER BY date, time")
+            query = query.replace("ORDER BY v.date, v.time", "AND v.date <= %s ORDER BY v.date, v.time")
             params.append(end_date)
 
         try:
