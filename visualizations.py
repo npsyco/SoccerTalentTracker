@@ -10,6 +10,13 @@ class Visualizer:
             'Presspiller': '#99FF99',
             'Støttespiller': '#FFCC99'
         }
+        # Define player colors for comparison graphs
+        self.player_colors = [
+            '#1f77b4',  # blue
+            '#ff7f0e',  # orange
+            '#2ca02c',  # green
+            '#d62728'   # red
+        ]
         # Define the rating order for consistent display
         self.rating_order = ['D', 'C', 'B', 'A']
 
@@ -349,8 +356,9 @@ class Visualizer:
                     col=1
                 )
 
-        # Add traces for each player
-        for player_name, data in player_data_dict.items():
+        # Add traces for each player with consistent colors
+        for i, (player_name, data) in enumerate(player_data_dict.items()):
+            player_color = self.player_colors[i % len(self.player_colors)]
             for idx, category in enumerate(categories, 1):
                 fig.add_trace(
                     go.Scatter(
@@ -358,8 +366,8 @@ class Visualizer:
                         y=data[category],
                         name=player_name,
                         mode='lines+markers',
-                        line=dict(width=2),
-                        marker=dict(size=8),
+                        line=dict(color=player_color, width=2),
+                        marker=dict(size=8, color=player_color),
                         showlegend=(idx == 1)  # Show legend only for first category
                     ),
                     row=idx,

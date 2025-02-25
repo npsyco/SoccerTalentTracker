@@ -89,28 +89,36 @@ class PostgresDataManager:
     def get_player_performance(self, player_name, start_date=None, end_date=None):
         """Get performance history for a specific player within date range"""
         query = """
+            WITH valid_matches AS (
+                -- First get only valid matches
+                SELECT m.* 
+                FROM matches m
+                JOIN players p ON m.player_id = p.id
+                WHERE p.name = %s
+                AND m.date IS NOT NULL 
+                AND m.date != '1970-01-01'
+                AND EXTRACT(YEAR FROM m.date) >= 2000
+                AND EXTRACT(YEAR FROM m.date) <= EXTRACT(YEAR FROM CURRENT_DATE)
+            )
             SELECT 
-                m.date::date as date, 
-                m.time::time as time,
-                m.opponent,
-                m.boldholder as "Boldholder",
-                m.medspiller as "Medspiller",
-                m.presspiller as "Presspiller",
-                m.stottespiller as "Støttespiller"
-            FROM matches m
-            JOIN players p ON m.player_id = p.id
-            WHERE p.name = %s
+                date::date as date, 
+                time::time as time,
+                opponent,
+                boldholder as "Boldholder",
+                medspiller as "Medspiller",
+                presspiller as "Presspiller",
+                stottespiller as "Støttespiller"
+            FROM valid_matches
+            ORDER BY date, time
         """
         params = [player_name]
 
         if start_date:
-            query += " AND m.date >= %s"
+            query = query.replace("ORDER BY date, time", "AND date >= %s ORDER BY date, time")
             params.append(start_date)
         if end_date:
-            query += " AND m.date <= %s"
+            query = query.replace("ORDER BY date, time", "AND date <= %s ORDER BY date, time")
             params.append(end_date)
-
-        query += " ORDER BY m.date, m.time"
 
         try:
             with psycopg2.connect(self.conn_string) as conn:
