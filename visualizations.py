@@ -386,13 +386,6 @@ class Visualizer:
                 xanchor="center",
                 x=0.5
             ),
-            # Completely disable the modebar (removes all interactive controls)
-            modebar_remove=[
-                'zoom', 'pan', 'select', 'lasso2d', 'zoomIn2d', 'zoomOut2d',
-                'autoScale2d', 'resetScale2d', 'hoverClosestCartesian',
-                'hoverCompareCartesian', 'toImage'
-            ],
-            modebar_display=False,  # Hide the entire modebar
             # Optimize margins
             margin=dict(
                 l=50,    # left margin
@@ -401,7 +394,7 @@ class Visualizer:
                 b=50,    # bottom margin
                 pad=4    # padding between subplots
             ),
-            # Disable all hover interactions
+            # Disable hover interactions
             hovermode=False
         )
 
@@ -433,4 +426,14 @@ class Visualizer:
                 col=1
             )
 
-        return fig
+        # Return figure with config to disable all modebar buttons
+        return fig.update(layout_showlegend=True).show(
+            config={
+                'displayModeBar': False,  # Hide the modebar completely
+                'scrollZoom': False,      # Disable scroll zoom
+                'doubleClick': False,     # Disable double click actions
+                'showTips': False,        # Disable hover tips
+                'displaylogo': False,     # Hide Plotly logo
+                'responsive': True        # Make the plot responsive to window size
+            }
+        )

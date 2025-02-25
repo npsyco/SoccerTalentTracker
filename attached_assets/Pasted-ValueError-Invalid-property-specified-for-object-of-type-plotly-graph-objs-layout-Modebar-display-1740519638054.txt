@@ -1,0 +1,23 @@
+ValueError: Invalid property specified for object of type plotly.graph_objs.layout.Modebar: 'display' Did you mean "addsrc"? Valid properties: activecolor Sets the color of the active or hovered on icons in the modebar. add Determines which predefined modebar buttons to add. Please note that these buttons will only be shown if they are compatible with all trace types used in a graph. Similar to `config.modeBarButtonsToAdd` option. This may include "v1hovermode", "hoverclosest", "hovercompare", "togglehover", "togglespikelines", "drawline", "drawopenpath", "drawclosedpath", "drawcircle", "drawrect", "eraseshape". addsrc Sets the source reference on Chart Studio Cloud for `add`. bgcolor Sets the background color of the modebar. color Sets the color of the icons in the modebar. orientation Sets the orientation of the modebar. remove Determines which predefined modebar buttons to remove. Similar to `config.modeBarButtonsToRemove` option. This may include "autoScale2d", "autoscale", "editInChartStudio", "editinchartstudio", "hoverCompareCartesian", "hovercompare", "lasso", "lasso2d", "orbitRotation", "orbitrotation", "pan", "pan2d", "pan3d", "reset", "resetCameraDefault3d", "resetCameraLastSave3d", "resetGeo", "resetSankeyGroup", "resetScale2d", "resetViewMap", "resetViewMapbox", "resetViews", "resetcameradefault", "resetcameralastsave", "resetsankeygroup", "resetscale", "resetview", "resetviews", "select", "select2d", "sendDataToCloud", "senddatatocloud", "tableRotation", "tablerotation", "toImage", "toggleHover", "toggleSpikelines", "togglehover", "togglespikelines", "toimage", "zoom", "zoom2d", "zoom3d", "zoomIn2d", "zoomInGeo", "zoomInMap", "zoomInMapbox", "zoomOut2d", "zoomOutGeo", "zoomOutMap", "zoomOutMapbox", "zoomin", "zoomout". removesrc Sets the source reference on Chart Studio Cloud for `remove`. uirevision Controls persistence of user-driven changes related to the modebar, including `hovermode`, `dragmode`, and `showspikes` at both the root level and inside subplots. Defaults to `layout.uirevision`. Did you mean "addsrc"? Bad property path: modebar_display ^^^^^^^
+Traceback:
+File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/streamlit/runtime/scriptrunner/exec_code.py", line 121, in exec_func_with_error_handling
+    result = func()
+             ^^^^^^
+File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/streamlit/runtime/scriptrunner/script_runner.py", line 591, in code_to_exec
+    exec(code, module.__dict__)
+File "/home/runner/workspace/main.py", line 428, in <module>
+    main()
+File "/home/runner/workspace/main.py", line 420, in main
+    fig = viz.plot_player_comparison(player_data_dict)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+File "/home/runner/workspace/visualizations.py", line 375, in plot_player_comparison
+    fig.update_layout(
+File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/plotly/graph_objs/_figure.py", line 787, in update_layout
+    return super(Figure, self).update_layout(dict1, overwrite, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/plotly/basedatatypes.py", line 1392, in update_layout
+    self.layout.update(dict1, overwrite=overwrite, **kwargs)
+File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/plotly/basedatatypes.py", line 5123, in update
+    BaseFigure._perform_update(self, kwargs, overwrite=overwrite)
+File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/plotly/basedatatypes.py", line 3882, in _perform_update
+    raise err
