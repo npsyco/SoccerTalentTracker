@@ -28,26 +28,38 @@ def create_initial_admin():
 
                 # Get admin role ID
                 cur.execute("SELECT id FROM roles WHERE name = 'admin'")
-                admin_role_id = cur.fetchone()[0]
-
-                # Check if admin user exists
-                cur.execute("SELECT id FROM users WHERE role_id = %s", (admin_role_id,))
-                admin_exists = cur.fetchone()
+                admin_role = cur.fetchone()
+                if not admin_role:
+                    st.error("Admin role not found in database")
+                    return
+                admin_role_id = admin_role[0]
 
                 # Create password hash
                 password_hash = pwd_context.hash(admin_password)
+
+                # Check if admin user exists
+                cur.execute("""
+                    SELECT id FROM users u
+                    JOIN roles r ON u.role_id = r.id
+                    WHERE r.name = 'admin'
+                """)
+                admin_exists = cur.fetchone()
 
                 if admin_exists:
                     # Update existing admin
                     cur.execute("""
                         UPDATE users 
-                        SET username = %s, password_hash = %s, email = %s, status = 'active'
+                        SET username = %s, 
+                            password_hash = %s, 
+                            email = %s, 
+                            status = 'active'
                         WHERE id = %s
                     """, (admin_username, password_hash, admin_email, admin_exists[0]))
                 else:
                     # Create new admin user
                     cur.execute("""
-                        INSERT INTO users (username, password_hash, email, role_id, status)
+                        INSERT INTO users 
+                        (username, password_hash, email, role_id, status)
                         VALUES (%s, %s, %s, %s, 'active')
                     """, (admin_username, password_hash, admin_email, admin_role_id))
 
