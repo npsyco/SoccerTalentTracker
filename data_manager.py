@@ -128,21 +128,21 @@ class DataManager:
         categories = ['Boldholder', 'Medspiller', 'Presspiller', 'Støttespiller']
         team_performance = pd.DataFrame()
 
-        # Process each date separately
-        for date in matches_df['Date'].unique():
-            date_data = matches_df[matches_df['Date'] == date].copy()
+        # Process each unique date and time combination
+        date_time_groups = matches_df.groupby(['Date', 'Time'])
+        for (date, time), group_data in date_time_groups:
             date_ratings = {}
 
             # Calculate mode (most common rating) for each category
             for category in categories:
                 # Convert to categorical with proper ordering first
-                date_data.loc[:, category] = pd.Categorical(
-                    date_data[category],
+                group_data.loc[:, category] = pd.Categorical(
+                    group_data[category],
                     categories=self.rating_order,
                     ordered=True
                 )
                 # Get value counts for the category
-                ratings = date_data[category].value_counts()
+                ratings = group_data[category].value_counts()
                 # If there's a tie, take the lower rating
                 if not ratings.empty:
                     max_count = ratings.max()
