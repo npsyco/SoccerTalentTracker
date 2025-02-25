@@ -223,6 +223,9 @@ def main():
                 st.write("Debug: Team Performance Data")
                 st.write("Raw data shape:", team_data.shape)
                 st.write("Available ratings:", team_data.nunique())
+                st.write("Raw match data before processing:")
+                matches_df = pd.read_csv('data/matches.csv')
+                st.dataframe(matches_df)
                 st.dataframe(team_data)
 
                 if category == "Alle roller":

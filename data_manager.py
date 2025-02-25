@@ -18,7 +18,7 @@ class DataManager:
             pd.DataFrame(columns=['Name', 'Position']).to_csv(self.players_file, index=False)
 
         if not os.path.exists(self.matches_file):
-            columns = ['Date', 'Opponent', 'Player', 'Boldholder', 'Medspiller', 'Presspiller', 'Støttespiller']
+            columns = ['Date', 'Opponent', 'Player', 'Technical', 'Tactical', 'Physical', 'Mental', 'Boldholder', 'Medspiller', 'Presspiller', 'Støttespiller']
             pd.DataFrame(columns=columns).to_csv(self.matches_file, index=False)
 
     def add_player(self, name, position):
@@ -110,13 +110,13 @@ class DataManager:
 
         # Process each date separately
         for date in matches_df['Date'].unique():
-            date_data = matches_df[matches_df['Date'] == date]
+            date_data = matches_df[matches_df['Date'] == date].copy()
             date_ratings = {}
 
             # Calculate mode (most common rating) for each category
             for category in categories:
                 # Convert to categorical with proper ordering first
-                date_data[category] = pd.Categorical(
+                date_data.loc[:, category] = pd.Categorical(
                     date_data[category],
                     categories=self.rating_order,
                     ordered=True
