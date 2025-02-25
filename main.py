@@ -45,6 +45,17 @@ st.markdown("""
             float: right;
             margin-right: 10px;
         }
+
+        /* Admin impersonation warning */
+        .impersonation-warning {
+            background-color: #ffebee;
+            border: 1px solid #ef5350;
+            border-radius: 4px;
+            padding: 8px;
+            margin-bottom: 10px;
+            color: #c62828;
+            text-align: center;
+        }
     </style>
 """, unsafe_allow_html=True)
 
@@ -70,6 +81,17 @@ def main():
     # Create top navigation bar with account info
     _, _, account_col = st.columns([1, 2, 1])
     with account_col:
+        # Show impersonation warning if admin is impersonating another user
+        if "impersonated_user" in st.session_state:
+            st.markdown(
+                f"""
+                <div class="impersonation-warning">
+                    ⚠️ Administrerer bruger: {st.session_state.impersonated_user}
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
         st.markdown(
             f"""
             <div style="text-align: right;">

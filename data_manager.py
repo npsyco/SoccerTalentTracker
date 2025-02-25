@@ -165,3 +165,53 @@ class DataManager:
             )
 
         return team_performance.sort_index()
+
+    def generate_test_data(self, username):
+        """Generate test data for a specific user"""
+        # Generate 10 test players
+        test_players = [f"Test{i}" for i in range(1, 11)]
+        for player in test_players:
+            self.add_player(player, "Not specified")
+
+        # Generate 5 matches
+        match_data = [
+            # Two matches on the same day
+            (datetime(2025, 2, 25, 9, 0), "Morning Team"),
+            (datetime(2025, 2, 25, 15, 0), "Afternoon Team"),
+            # Three matches on different days
+            (datetime(2025, 2, 23, 12, 0), "Team Alpha"),
+            (datetime(2025, 2, 24, 14, 0), "Team Beta"),
+            (datetime(2025, 2, 26, 10, 0), "Team Gamma")
+        ]
+
+        # Performance ratings (A, B, C, D) for each role
+        roles = ['Boldholder', 'Medspiller', 'Presspiller', 'Støttespiller']
+        ratings = ['A', 'B', 'C', 'D']
+
+        players_df = self.get_players()
+
+        for match_date, opponent in match_data:
+            # Generate random ratings for each player
+            player_ratings = {}
+            for role in roles:
+                player_ratings[role] = {
+                    player: ratings[hash(f"{player}{role}{match_date}") % len(ratings)]
+                    for player in test_players[:5]  # Use 5 players per match
+                }
+
+            # Add match record
+            self.add_match_record(
+                match_date,
+                match_date.time(),
+                opponent,
+                players_df[players_df['Name'].isin(test_players[:5])],
+                player_ratings
+            )
+
+    def reset_data(self):
+        """Reset all data in the system"""
+        if os.path.exists(self.players_file):
+            os.remove(self.players_file)
+        if os.path.exists(self.matches_file):
+            os.remove(self.matches_file)
+        self._initialize_data_files()

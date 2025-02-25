@@ -207,11 +207,23 @@ def show_user_management():
                 options=[user["username"] for user in non_admin_users]
             )
 
-            if st.button("Skift til bruger"):
-                # Store the impersonated user in session state
-                st.session_state.impersonated_user = selected_user
-                st.success(f"Du administrerer nu {selected_user}'s data")
-                st.rerun()
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button("Skift til bruger"):
+                    # Store the impersonated user in session state
+                    st.session_state.impersonated_user = selected_user
+                    st.success(f"Du administrerer nu {selected_user}'s data")
+                    st.rerun()
+
+            with col2:
+                if st.button("Generer testdata"):
+                    from data_manager import DataManager
+                    dm = DataManager()
+                    dm.reset_data()  # Clear existing data
+                    dm.generate_test_data(selected_user)  # Generate new test data
+                    st.success(f"Testdata genereret for {selected_user}")
+                    st.rerun()
+
         else:
             st.info("Ingen brugere at administrere")
 
