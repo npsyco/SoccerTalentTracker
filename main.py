@@ -62,7 +62,7 @@ def main():
         if 'match_step' not in st.session_state:
             st.session_state.match_step = 1
         if 'selected_players' not in st.session_state:
-            st.session_state.selected_players = None
+            st.session_state.selected_players = []
         if 'match_date' not in st.session_state:
             st.session_state.match_date = None
         if 'opponent' not in st.session_state:
@@ -86,7 +86,9 @@ def main():
                     for idx, player in players_df.iterrows():
                         col_idx = idx % 3
                         with cols[col_idx]:
-                            selected_players[player['Name']] = st.checkbox(player['Name'])
+                            # Pre-select players that were previously selected
+                            default_value = player['Name'] in st.session_state.selected_players
+                            selected_players[player['Name']] = st.checkbox(player['Name'], value=default_value)
 
                     if st.form_submit_button("Fortsæt til vurdering"):
                         selected_players_list = [name for name, selected in selected_players.items() if selected]
@@ -126,6 +128,7 @@ def main():
                 with col1:
                     if st.form_submit_button("Tilbage"):
                         st.session_state.match_step = 1
+                        # Keep the selected players in session state
                         st.rerun()
 
                 with col2:
@@ -150,7 +153,7 @@ def main():
 
                         # Reset state and show success message
                         st.session_state.match_step = 1
-                        st.session_state.selected_players = None
+                        st.session_state.selected_players = []
                         st.session_state.match_date = None
                         st.session_state.opponent = None
                         st.success("Kampdata gemt!")
