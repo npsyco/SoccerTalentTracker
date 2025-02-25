@@ -48,6 +48,10 @@ class DataManager:
         """Add match performance records for selected players"""
         matches_df = pd.read_csv(self.matches_file)
 
+        # Ensure Time column exists
+        if 'Time' not in matches_df.columns:
+            matches_df['Time'] = None
+
         new_records = []
         for _, player in players_df.iterrows():
             player_name = player['Name']
@@ -74,7 +78,13 @@ class DataManager:
 
         if not player_data.empty:
             player_data['Date'] = pd.to_datetime(player_data['Date'])
-            player_data['Time'] = pd.to_datetime(player_data['Time'], format='%H:%M')
+
+            # Handle Time column if it exists
+            if 'Time' in player_data.columns:
+                player_data['Time'] = pd.to_datetime(player_data['Time'], format='%H:%M').dt.time
+            else:
+                player_data['Time'] = None
+
             if start_date:
                 player_data = player_data[player_data['Date'] >= start_date]
             if end_date:
@@ -88,7 +98,7 @@ class DataManager:
                     ordered=True
                 )
 
-        return player_data.sort_values(['Date', 'Time'])
+        return player_data.sort_values('Date')
 
     def get_available_seasons(self):
         """Get list of available seasons (years) from match data"""
