@@ -163,19 +163,36 @@ def main():
                 # Delete player option
                 player_to_delete = st.selectbox("Vælg spiller fra listen der skal slettes", players_df['Name'].tolist())
 
-                # First show delete button
-                if st.button("Slet Spiller"):
-                    # Show confirmation warning and buttons
-                    st.warning(f"Er du sikker på at du vil slette spilleren '{player_to_delete}'? Dette vil også slette alle spillerens kampdata.")
+                # Initialize deletion state if not present
+                if 'delete_confirmation' not in st.session_state:
+                    st.session_state.delete_confirmation = False
+                    st.session_state.player_to_delete = None
+
+                # Show initial delete button if not in confirmation mode
+                if not st.session_state.delete_confirmation:
+                    if st.button("Slet Spiller"):
+                        st.session_state.delete_confirmation = True
+                        st.session_state.player_to_delete = player_to_delete
+                        st.rerun()
+
+                # Show confirmation dialog if in confirmation mode
+                if st.session_state.delete_confirmation:
+                    st.warning(f"Er du sikker på at du vil slette spilleren '{st.session_state.player_to_delete}'? Dette vil også slette alle spillerens kampdata.")
 
                     col1, col2 = st.columns(2)
                     with col1:
-                        if st.button("Ja, slet spiller", key="confirm_delete"):
-                            dm.delete_player(player_to_delete)
-                            st.success(f"Spiller slettet: {player_to_delete}")
-                            st.rerun()
+                        if st.button("Ja, slet spiller"):
+                            if dm.delete_player(st.session_state.player_to_delete):
+                                st.success(f"Spiller slettet: {st.session_state.player_to_delete}")
+                                # Reset deletion state
+                                st.session_state.delete_confirmation = False
+                                st.session_state.player_to_delete = None
+                                st.rerun()
                     with col2:
-                        if st.button("Nej, behold spiller", key="cancel_delete"):
+                        if st.button("Nej, behold spiller"):
+                            # Reset deletion state
+                            st.session_state.delete_confirmation = False
+                            st.session_state.player_to_delete = None
                             st.rerun()
 
     elif st.session_state.page == "Kampdata":
