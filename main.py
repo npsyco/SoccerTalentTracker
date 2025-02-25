@@ -226,6 +226,14 @@ def main():
 
             team_data = dm.get_team_performance(start_date, end_date)
             if not team_data.empty:
+                # Temporary debug output
+                st.write("Debug: Team Performance Calculation")
+                matches_df = pd.read_csv('data/matches.csv')
+                st.write("Latest match ratings (Team Delta):")
+                st.dataframe(matches_df[matches_df['Opponent'] == 'Team Delta'])
+                st.write("Calculated team ratings:")
+                st.dataframe(team_data)
+
                 if category == "Alle roller":
                     fig = viz.plot_team_all_categories(team_data)
                 else:

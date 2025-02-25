@@ -8,6 +8,8 @@ class DataManager:
         self.matches_file = "data/matches.csv"
         self._initialize_data_files()
         self.rating_order = ['D', 'C', 'B', 'A']
+        self.rating_map = {'A': 4, 'B': 3, 'C': 2, 'D': 1}
+        self.reverse_rating_map = {4: 'A', 3: 'B', 2: 'C', 1: 'D'}
 
     def _initialize_data_files(self):
         """Initialize CSV files if they don't exist"""
@@ -20,6 +22,16 @@ class DataManager:
         if not os.path.exists(self.matches_file):
             columns = ['Date', 'Time', 'Opponent', 'Player', 'Boldholder', 'Medspiller', 'Presspiller', 'Støttespiller']
             pd.DataFrame(columns=columns).to_csv(self.matches_file, index=False)
+
+    def _convert_to_numeric(self, rating):
+        """Convert letter rating to numeric value"""
+        return self.rating_map.get(rating, 1)  # Default to 1 (D) if invalid
+
+    def _convert_to_letter(self, numeric_value):
+        """Convert numeric value back to letter rating"""
+        # Round to nearest integer and ensure it's in range 1-4
+        numeric_value = max(1, min(4, round(numeric_value)))
+        return self.reverse_rating_map.get(numeric_value, 'D')
 
     def add_player(self, name, position):
         """Add a new player to the system"""
@@ -35,7 +47,6 @@ class DataManager:
         players_df = players_df[players_df['Name'] != name]
         players_df.to_csv(self.players_file, index=False)
 
-        # Also remove player's match records
         matches_df = pd.read_csv(self.matches_file)
         matches_df = matches_df[matches_df['Player'] != name]
         matches_df.to_csv(self.matches_file, index=False)
@@ -48,7 +59,6 @@ class DataManager:
         """Add match performance records for selected players"""
         matches_df = pd.read_csv(self.matches_file)
 
-        # Ensure Time column exists
         if 'Time' not in matches_df.columns:
             matches_df['Time'] = None
 
@@ -79,7 +89,6 @@ class DataManager:
         if not player_data.empty:
             player_data['Date'] = pd.to_datetime(player_data['Date'])
 
-            # Handle Time column if it exists
             if 'Time' in player_data.columns:
                 player_data['Time'] = pd.to_datetime(player_data['Time'], format='%H:%M').dt.time
             else:
@@ -133,23 +142,13 @@ class DataManager:
         for (date, time), group_data in date_time_groups:
             date_ratings = {}
 
-            # Calculate mode (most common rating) for each category
+            # Calculate average numeric rating for each category
             for category in categories:
-                # Convert to categorical with proper ordering first
-                group_data.loc[:, category] = pd.Categorical(
-                    group_data[category],
-                    categories=self.rating_order,
-                    ordered=True
-                )
-                # Get value counts for the category
-                ratings = group_data[category].value_counts()
-                # If there's a tie, take the lower rating
-                if not ratings.empty:
-                    max_count = ratings.max()
-                    most_common = ratings[ratings == max_count].index
-                    date_ratings[category] = sorted(most_common)[0]  # Take the lowest rating in case of tie
-                else:
-                    date_ratings[category] = 'D'
+                # Convert ratings to numeric values
+                numeric_ratings = group_data[category].map(self._convert_to_numeric)
+                # Calculate mean and convert back to letter
+                mean_rating = numeric_ratings.mean()
+                date_ratings[category] = self._convert_to_letter(mean_rating)
 
             # Add to team performance dataframe
             team_performance = pd.concat([
