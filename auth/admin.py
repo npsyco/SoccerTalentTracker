@@ -3,6 +3,10 @@ from .database import AuthDB
 from .session import SessionManager
 import psycopg2
 from typing import List, Dict
+from passlib.context import CryptContext
+
+# Password hashing configuration
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 def show_user_management():
     """Show user management interface for admins"""
@@ -249,24 +253,28 @@ def create_initial_admin():
                 user_count = cur.fetchone()[0]
 
                 if user_count == 0:
-                    # Create admin user
-                    success = auth_db.create_user(
-                        username="admin",
-                        password="admin",
-                        email="admin@example.com",
-                        role="admin"
-                    )
+                    # Get admin role ID
+                    cur.execute("SELECT id FROM roles WHERE name = 'admin'")
+                    admin_role_id = cur.fetchone()[0]
 
-                    if success:
-                        st.warning("""
-                            Initial admin user created:
-                            Username: admin
-                            Password: admin
-                            Log ind og skift adgangskoden med det samme!
-                        """)
+                    # Create admin user with active status
+                    password_hash = pwd_context.hash('admin')
+                    cur.execute("""
+                        INSERT INTO users (username, password_hash, email, role_id, status)
+                        VALUES ('admin', %s, 'admin@example.com', %s, 'active')
+                    """, (password_hash, admin_role_id))
+
+                    conn.commit()
+
+                    st.warning("""
+                        Initial admin user created:
+                        Username: admin
+                        Password: admin
+                        Log ind og skift adgangskoden med det samme!
+                    """)
 
                     # Create a test coach user
-                    auth_db.create_user(
+                    auth_db.register_user(
                         username="test_coach",
                         password="test123",
                         email="coach@test.com",
