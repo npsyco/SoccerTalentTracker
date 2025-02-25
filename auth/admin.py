@@ -23,14 +23,12 @@ def create_initial_admin():
                 admin_email = os.environ.get('ADMIN_EMAIL')
 
                 if not all([admin_username, admin_password, admin_email]):
-                    st.error("Admin credentials not found in environment variables")
                     return
 
                 # Get admin role ID
                 cur.execute("SELECT id FROM roles WHERE name = 'admin'")
                 admin_role = cur.fetchone()
                 if not admin_role:
-                    st.error("Admin role not found in database")
                     return
                 admin_role_id = admin_role[0]
 
@@ -39,7 +37,7 @@ def create_initial_admin():
 
                 # Check if admin user exists
                 cur.execute("""
-                    SELECT id FROM users u
+                    SELECT u.id FROM users u
                     JOIN roles r ON u.role_id = r.id
                     WHERE r.name = 'admin'
                 """)
@@ -66,7 +64,7 @@ def create_initial_admin():
                 conn.commit()
 
     except Exception as e:
-        st.error(f"Error setting up admin user: {str(e)}")
+        print(f"Error setting up admin user: {str(e)}")
 
 def show_user_management():
     """Show user management interface for admins"""
