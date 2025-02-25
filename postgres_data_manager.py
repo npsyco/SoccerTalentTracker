@@ -45,7 +45,10 @@ class PostgresDataManager:
         """Get list of all players"""
         try:
             with psycopg2.connect(self.conn_string) as conn:
-                return pd.read_sql_query("SELECT name, position FROM players ORDER BY name", conn)
+                df = pd.read_sql_query("SELECT name, position FROM players ORDER BY name", conn)
+                # Rename columns to match expected format
+                df = df.rename(columns={'name': 'Name', 'position': 'Position'})
+                return df
         except psycopg2.Error as e:
             print(f"Error getting players: {e}")
             return pd.DataFrame(columns=['Name', 'Position'])
