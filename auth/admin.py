@@ -5,6 +5,7 @@ import psycopg2
 from psycopg2.extras import DictCursor
 from typing import List, Dict
 from passlib.context import CryptContext
+import os
 
 # Password hashing configuration
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -25,14 +26,25 @@ def create_initial_admin():
                     cur.execute("SELECT id FROM roles WHERE name = 'admin'")
                     admin_role_id = cur.fetchone()[0]
 
+                    # Get admin credentials from environment variables
+                    admin_username = os.environ.get('ADMIN_USERNAME')
+                    admin_password = os.environ.get('ADMIN_PASSWORD')
+                    admin_email = os.environ.get('ADMIN_EMAIL')
+
+                    if not all([admin_username, admin_password, admin_email]):
+                        st.error("Admin credentials not found in environment variables")
+                        return
+
                     # Create admin user with active status
-                    password_hash = pwd_context.hash('admin')
+                    password_hash = pwd_context.hash(admin_password)
                     cur.execute("""
                         INSERT INTO users (username, password_hash, email, role_id, status)
-                        VALUES ('admin', %s, 'admin@example.com', %s, 'active')
-                    """, (password_hash, admin_role_id))
+                        VALUES (%s, %s, %s, %s, 'active')
+                    """, (admin_username, password_hash, admin_email, admin_role_id))
 
                     conn.commit()
+
+                    st.success(f"Admin user '{admin_username}' created successfully")
 
                     # Create a test coach user
                     auth_db.register_user(
