@@ -295,7 +295,7 @@ def main():
         with col1:
             analysis_type = st.radio(
                 "Vælg analysetype",
-                ["Individuel Spilleranalyse", "Holdanalyse"]
+                ["Individuel Spilleranalyse", "Holdanalyse", "Spillersammenligning"]
             )
 
         with col2:
@@ -339,7 +339,7 @@ def main():
                 else:
                     st.info("Ingen data tilgængelig for denne spiller")
 
-        else:  # Holdanalyse
+        elif analysis_type == "Holdanalyse":
             category = st.selectbox(
                 "Vælg rolle",
                 ["Alle roller", "Boldholder", "Medspiller", "Presspiller", "Støttespiller"]
@@ -354,6 +354,31 @@ def main():
                 st.plotly_chart(fig)
             else:
                 st.info("Ingen holddata tilgængelig")
+
+        else:  # Spillersammenligning
+            players_df = dm.get_players()
+            if not players_df.empty:
+                selected_players = st.multiselect(
+                    "Vælg spillere at sammenligne",
+                    players_df['Name'].tolist(),
+                    max_selections=4  # Limit to 4 players for better visualization
+                )
+
+                if selected_players:
+                    # Get data for all selected players
+                    player_data_dict = {}
+                    for player_name in selected_players:
+                        player_data = dm.get_player_performance(player_name, start_date, end_date)
+                        if not player_data.empty:
+                            player_data_dict[player_name] = player_data
+
+                    if player_data_dict:
+                        fig = viz.plot_player_comparison(player_data_dict)
+                        st.plotly_chart(fig)
+                    else:
+                        st.info("Ingen data tilgængelig for de valgte spillere")
+                else:
+                    st.info("Vælg mindst én spiller at sammenligne")
 
 if __name__ == "__main__":
     main()

@@ -180,3 +180,74 @@ class Visualizer:
         )
 
         return fig
+
+    def plot_player_comparison(self, player_data_dict):
+        """Plot comparison between multiple players
+
+        Args:
+            player_data_dict: Dictionary with player names as keys and their performance data as values
+        """
+        # Create subplots: one row for each category
+        categories = ['Boldholder', 'Medspiller', 'Presspiller', 'Støttespiller']
+        fig = make_subplots(
+            rows=len(categories),
+            cols=1,
+            subplot_titles=categories,
+            vertical_spacing=0.1
+        )
+
+        for idx, category in enumerate(categories, 1):
+            for player_name, data in player_data_dict.items():
+                # Format x-axis labels
+                x_labels = []
+                dates = data['Date'].dt.strftime('%Y-%m-%d').values
+                for i, date in enumerate(dates):
+                    if 'Time' in data.columns and not pd.isna(data['Time'].iloc[i]):
+                        if len(data[data['Date'].dt.strftime('%Y-%m-%d') == date]) > 1:
+                            x_labels.append(f"{date}\n{data['Time'].iloc[i]}")
+                        else:
+                            x_labels.append(date)
+                    else:
+                        x_labels.append(date)
+
+                fig.add_trace(
+                    go.Scatter(
+                        x=x_labels,
+                        y=data[category],
+                        name=f"{player_name}",
+                        mode='lines+markers',
+                        line=dict(width=2),
+                        showlegend=(idx == 1)  # Show legend only for first category
+                    ),
+                    row=idx,
+                    col=1
+                )
+
+            # Update y-axis for each subplot
+            fig.update_yaxes(
+                dict(
+                    ticktext=self.rating_order,
+                    tickvals=self.rating_order,
+                    categoryorder='array',
+                    categoryarray=self.rating_order,
+                    range=[-0.5, 3.5]
+                ),
+                row=idx,
+                col=1
+            )
+
+        # Update layout
+        fig.update_layout(
+            height=1000,  # Increased height for better visibility
+            title="Spillersammenligning over tid",
+            showlegend=True,
+            legend=dict(
+                yanchor="top",
+                y=1.1,
+                xanchor="center",
+                x=0.5,
+                orientation="h"
+            )
+        )
+
+        return fig
