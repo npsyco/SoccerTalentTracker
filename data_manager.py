@@ -7,6 +7,7 @@ class DataManager:
         self.players_file = "data/players.csv"
         self.matches_file = "data/matches.csv"
         self._initialize_data_files()
+        self.rating_order = ['D', 'C', 'B', 'A']
 
     def _initialize_data_files(self):
         """Initialize CSV files if they don't exist"""
@@ -88,16 +89,6 @@ class DataManager:
             return years
         return []
 
-    def _rating_to_numeric(self, rating):
-        """Convert letter rating to numeric value"""
-        rating_map = {'D': 0, 'C': 1, 'B': 2, 'A': 3}
-        return rating_map.get(rating, 0)
-
-    def _numeric_to_rating(self, numeric):
-        """Convert numeric value to letter rating"""
-        rating_map = {0: 'D', 1: 'C', 2: 'B', 3: 'A'}
-        return rating_map.get(int(round(numeric)), 'D')
-
     def get_team_performance(self, start_date=None, end_date=None):
         """Get team's overall performance history within date range"""
         matches_df = pd.read_csv(self.matches_file)
@@ -124,7 +115,14 @@ class DataManager:
 
             # Calculate mode (most common rating) for each category
             for category in categories:
+                # Convert to categorical with proper ordering first
+                date_data[category] = pd.Categorical(
+                    date_data[category],
+                    categories=self.rating_order,
+                    ordered=True
+                )
                 ratings = date_data[category].value_counts()
+                # If there's a tie, take the lower rating
                 date_ratings[category] = ratings.index[0] if not ratings.empty else 'D'
 
             # Add to team performance dataframe
@@ -132,5 +130,13 @@ class DataManager:
                 team_performance,
                 pd.DataFrame([date_ratings], index=[date])
             ])
+
+        # Ensure categorical type for all columns
+        for category in categories:
+            team_performance[category] = pd.Categorical(
+                team_performance[category],
+                categories=self.rating_order,
+                ordered=True
+            )
 
         return team_performance.sort_index()
