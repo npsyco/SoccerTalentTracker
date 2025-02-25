@@ -3,7 +3,9 @@ import pandas as pd
 from data_manager import DataManager
 from visualizations import Visualizer
 from utils import initialize_session_state
-import datetime
+from auth.session import SessionManager
+from auth.database import AuthDB
+from pages.login import show_login_page, show_logout_button
 
 st.set_page_config(page_title="Sorø-Freja Spiller Udviklingsværktøj", layout="wide")
 
@@ -11,7 +13,23 @@ def main():
     # Initialize session state
     initialize_session_state()
 
-    # Initialize data manager
+    # Initialize session manager
+    session_manager = SessionManager()
+
+    # Create initial admin user if needed
+    auth_db = AuthDB()
+    with st.sidebar:
+        if session_manager.get_current_user():
+            st.write(f"Logget ind som: {st.session_state.user['username']}")
+            show_logout_button()
+            st.sidebar.divider()
+
+    # Show login page if user is not logged in
+    if not session_manager.get_current_user():
+        show_login_page()
+        return
+
+    # Initialize data manager and visualizer
     dm = DataManager()
     viz = Visualizer()
 
@@ -24,6 +42,10 @@ def main():
     )
 
     if page == "Spillere":
+        # Require coach or admin role
+        if not session_manager.require_role(['admin', 'coach']):
+            return
+
         st.header("Spillere")
 
         col1, col2 = st.columns([1, 2])
@@ -55,7 +77,12 @@ def main():
                         st.success(f"Spiller slettet: {player_to_delete}")
                         st.rerun()
 
+
     elif page == "Kampdata":
+        # Require coach or assistant_coach role
+        if not session_manager.require_role(['admin', 'coach', 'assistant_coach']):
+            return
+
         st.header("Kampe")
 
         # Initialize session state for match recording
@@ -167,6 +194,10 @@ def main():
                         st.rerun()
 
     else:  # Udviklingsanalyse
+        # All roles can view analysis
+        if not session_manager.require_login():
+            return
+
         st.header("Udviklingsanalyse")
 
         # Add date range filtering
