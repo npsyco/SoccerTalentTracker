@@ -164,14 +164,33 @@ class Visualizer:
 
         # Format x-axis labels
         x_labels = []
-        dates = [pd.Timestamp(date).strftime('%Y-%m-%d') for date in data.index]
+        dates = []
+
+        # Convert tuple index to datetime strings
+        for idx in data.index:
+            if isinstance(idx, tuple) and len(idx) == 2:
+                date, time = idx
+                if time:
+                    dt = pd.Timestamp.combine(date, time)
+                else:
+                    dt = pd.Timestamp(date)
+                dates.append(dt.strftime('%Y-%m-%d'))
+            else:
+                dt = pd.Timestamp(idx)
+                dates.append(dt.strftime('%Y-%m-%d'))
+
         date_counts = pd.Series(dates).value_counts()
 
-        for i, date in enumerate(dates):
-            if date_counts[date] > 1:
-                x_labels.append(f"{date}\n{data.index[i].strftime('%H:%M')}")
+        for i, idx in enumerate(data.index):
+            if isinstance(idx, tuple) and len(idx) == 2:
+                date, time = idx
+                if time and date_counts[dates[i]] > 1:
+                    dt = pd.Timestamp.combine(date, time)
+                    x_labels.append(f"{dt.strftime('%Y-%m-%d')}\n{dt.strftime('%H:%M')}")
+                else:
+                    x_labels.append(dates[i])
             else:
-                x_labels.append(date)
+                x_labels.append(dates[i])
 
         for category in ['Boldholder', 'Medspiller', 'Presspiller', 'Støttespiller']:
             fig.add_trace(go.Scatter(
