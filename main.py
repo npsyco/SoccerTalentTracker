@@ -58,63 +58,103 @@ def main():
     elif page == "Kampdata":
         st.header("Kampe")
 
-        with st.form("add_match_record"):
-            st.subheader("Gem kampdata")
+        # Initialize session state for match recording
+        if 'match_step' not in st.session_state:
+            st.session_state.match_step = 1
+        if 'selected_players' not in st.session_state:
+            st.session_state.selected_players = None
+        if 'match_date' not in st.session_state:
+            st.session_state.match_date = None
+        if 'opponent' not in st.session_state:
+            st.session_state.opponent = None
 
-            match_date = st.date_input("Dato", datetime.date.today())
-            opponent = st.text_input("Modstander (valgfrit)")
+        # Step 1: Select match details and players
+        if st.session_state.match_step == 1:
+            with st.form("select_players"):
+                st.subheader("Vælg kampdetaljer og spillere")
 
-            players_df = dm.get_players()
-            if not players_df.empty:
-                st.subheader("Vælg spillere der deltog i kampen")
+                match_date = st.date_input("Dato", datetime.date.today())
+                opponent = st.text_input("Modstander (valgfrit)")
 
-                # Create checkboxes for player selection
-                selected_players = {}
-                cols = st.columns(3)  # Display checkboxes in 3 columns
-                for idx, player in players_df.iterrows():
-                    col_idx = idx % 3
-                    with cols[col_idx]:
-                        selected_players[player['Name']] = st.checkbox(player['Name'])
+                players_df = dm.get_players()
+                if not players_df.empty:
+                    st.subheader("Vælg spillere der deltog i kampen")
 
+                    # Create checkboxes for player selection
+                    selected_players = {}
+                    cols = st.columns(3)  # Display checkboxes in 3 columns
+                    for idx, player in players_df.iterrows():
+                        col_idx = idx % 3
+                        with cols[col_idx]:
+                            selected_players[player['Name']] = st.checkbox(player['Name'])
+
+                    if st.form_submit_button("Fortsæt til vurdering"):
+                        selected_players_list = [name for name, selected in selected_players.items() if selected]
+                        if len(selected_players_list) > 0:
+                            st.session_state.selected_players = selected_players_list
+                            st.session_state.match_date = match_date
+                            st.session_state.opponent = opponent
+                            st.session_state.match_step = 2
+                            st.rerun()
+                        else:
+                            st.error("Vælg mindst én spiller")
+
+        # Step 2: Enter ratings for selected players
+        elif st.session_state.match_step == 2:
+            with st.form("player_ratings"):
                 st.subheader("Spillervurdering")
+                st.write(f"Dato: {st.session_state.match_date}")
+                st.write(f"Modstander: {st.session_state.opponent or 'Ikke angivet'}")
 
                 categories = ["Boldholder", "Medspiller", "Presspiller", "Støttespiller"]
                 ratings = {}
 
-                # Only show ratings for selected players
-                for player_name, was_selected in selected_players.items():
-                    if was_selected:
-                        st.write(f"### {player_name}")
-                        cols = st.columns(4)
+                # Show ratings input for selected players
+                for player_name in st.session_state.selected_players:
+                    st.write(f"### {player_name}")
+                    cols = st.columns(4)
 
-                        for i, category in enumerate(categories):
-                            with cols[i]:
-                                ratings[f"{player_name}_{category}"] = st.selectbox(
-                                    f"{category}",
-                                    ["A", "B", "C", "D"],
-                                    key=f"{player_name}_{category}"
-                                )
+                    for i, category in enumerate(categories):
+                        with cols[i]:
+                            ratings[f"{player_name}_{category}"] = st.selectbox(
+                                f"{category}",
+                                ["A", "B", "C", "D"],
+                                key=f"{player_name}_{category}"
+                            )
 
-                if st.form_submit_button("Gem Kampdata"):
-                    # Only save data for selected players
-                    selected_players_df = players_df[players_df['Name'].isin(
-                        [name for name, selected in selected_players.items() if selected]
-                    )]
+                col1, col2 = st.columns([1, 5])
+                with col1:
+                    if st.form_submit_button("Tilbage"):
+                        st.session_state.match_step = 1
+                        st.rerun()
 
-                    if len(selected_players_df) > 0:
-                        # Restructure ratings to match the format expected by add_match_record
+                with col2:
+                    if st.form_submit_button("Gem Kampdata"):
+                        # Prepare player ratings
                         player_ratings = {}
                         for category in categories:
                             player_ratings[category] = {
                                 player_name: ratings[f"{player_name}_{category}"]
-                                for player_name, was_selected in selected_players.items()
-                                if was_selected
+                                for player_name in st.session_state.selected_players
                             }
 
-                        dm.add_match_record(match_date, opponent or "Ikke angivet", selected_players_df, player_ratings)
+                        # Save match record
+                        players_df = dm.get_players()
+                        selected_players_df = players_df[players_df['Name'].isin(st.session_state.selected_players)]
+                        dm.add_match_record(
+                            st.session_state.match_date,
+                            st.session_state.opponent or "Ikke angivet",
+                            selected_players_df,
+                            player_ratings
+                        )
+
+                        # Reset state and show success message
+                        st.session_state.match_step = 1
+                        st.session_state.selected_players = None
+                        st.session_state.match_date = None
+                        st.session_state.opponent = None
                         st.success("Kampdata gemt!")
-                    else:
-                        st.error("Vælg mindst én spiller")
+                        st.rerun()
 
     else:  # Udviklingsanalyse
         st.header("Udviklingsanalyse")
