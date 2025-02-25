@@ -3,10 +3,21 @@ from auth.session import SessionManager
 
 def show_login_page():
     # Hide sidebar and set minimal layout
-    st.set_page_config(
-        page_title="Sorø-Freja Login",
-        layout="centered",
-        initial_sidebar_state="collapsed"
+    st.markdown(
+        """
+        <style>
+            [data-testid="stSidebar"][aria-expanded="true"]{
+                display: none;
+            }
+            [data-testid="stSidebar"][aria-expanded="false"]{
+                display: none;
+            }
+            div[data-testid="stToolbar"] {
+                display: none;
+            }
+        </style>
+        """,
+        unsafe_allow_html=True
     )
 
     session_manager = SessionManager()
