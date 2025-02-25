@@ -27,10 +27,18 @@ def show_user_management():
         # Convert users to DataFrame for display
         user_data = []
         for user in users:
+            # Convert role names to Danish
+            role_name = {
+                'coach': 'Træner',
+                'assistant_coach': 'Assistent',
+                'observer': 'Tilskuer',
+                'admin': 'Administrator'
+            }.get(user["role_name"], user["role_name"])
+
             user_data.append({
                 "Brugernavn": user["username"],
                 "Email": user["email"],
-                "Rolle": user["role_name"],
+                "Rolle": role_name,
                 "Oprettet": user["created_at"].strftime("%Y-%m-%d %H:%M") if user["created_at"] else "N/A"
             })
 
@@ -39,7 +47,7 @@ def show_user_management():
     st.markdown("---")
 
     # Create new user form
-    with st.form("create_user"):
+    with st.form("create_user", clear_on_submit=True):
         st.subheader("Opret ny bruger")
 
         username = st.text_input("Brugernavn")
@@ -47,11 +55,19 @@ def show_user_management():
         password = st.text_input("Adgangskode", type="password")
         role = st.selectbox(
             "Rolle",
-            ["coach", "assistant_coach", "observer"]
+            ["Træner", "Assistent", "Tilskuer"],
+            format_func=lambda x: x
         )
 
+        # Convert Danish role names back to database values
+        role_map = {
+            "Træner": "coach",
+            "Assistent": "assistant_coach",
+            "Tilskuer": "observer"
+        }
+
         if st.form_submit_button("Opret bruger"):
-            if auth_db.create_user(username, password, email, role):
+            if auth_db.create_user(username, password, email, role_map[role]):
                 st.success("Bruger oprettet!")
                 st.rerun()
             else:
@@ -79,11 +95,11 @@ def show_user_management():
                     new_password = st.text_input("Ny Adgangskode", type="password")
                     new_role = st.selectbox(
                         "Ny Rolle",
-                        ["coach", "assistant_coach", "observer"]
+                        ["Træner", "Assistent", "Tilskuer"]
                     )
 
                     if st.form_submit_button("Opdater"):
-                        if update_user(auth_db, selected_user, new_email, new_password, new_role):
+                        if update_user(auth_db, selected_user, new_email, new_password, role_map[new_role]):
                             st.success("Bruger opdateret!")
                             st.rerun()
                         else:
@@ -91,11 +107,9 @@ def show_user_management():
 
             with col2:
                 # Delete user
-                with st.form("delete_user"):
-                    st.subheader("Slet Bruger")
-                    st.warning(f"Er du sikker på, at du vil slette brugeren '{selected_user}'?")
-
-                    if st.form_submit_button("Slet Bruger"):
+                st.subheader("Slet Bruger")
+                if st.button("Slet Bruger"):
+                    if st.warning("Er du sikker på, at du vil slette denne bruger?"):
                         if delete_user(auth_db, selected_user):
                             st.success("Bruger slettet!")
                             st.rerun()
@@ -182,10 +196,10 @@ def create_initial_admin():
 
                     if success:
                         st.warning("""
-                            Initial admin user created with these credentials:
+                            Initial admin user created:
                             Username: admin
                             Password: admin
-                            Please log in and change the password immediately!
+                            Log ind og skift adgangskoden med det samme!
                         """)
 
                     # Create a test coach user
@@ -195,7 +209,5 @@ def create_initial_admin():
                         email="coach@test.com",
                         role="coach"
                     )
-                else:
-                    st.error("Failed to create initial admin user")
     except Exception as e:
         st.error(f"Error creating initial admin: {str(e)}")

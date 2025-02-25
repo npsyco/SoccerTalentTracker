@@ -86,20 +86,20 @@ def main():
     with st.sidebar:
         # For admin users, show admin panel option
         if st.session_state.user['role'] == 'admin':
-            if st.button("🔧 Administration"):
+            if st.button("🔧 Administration", use_container_width=True):
                 st.session_state.page = "Admin"
                 st.rerun()
 
         st.markdown("---")
 
-        # Simplified navigation - removed selectbox in favor of direct buttons
-        if st.button("👥 Spillere", key="nav_players"):
+        # Simplified navigation - buttons with equal width
+        if st.button("👥 Spillere", key="nav_players", use_container_width=True):
             st.session_state.page = "Spillere"
             st.rerun()
-        if st.button("📊 Kampdata", key="nav_matches"):
+        if st.button("📊 Kampdata", key="nav_matches", use_container_width=True):
             st.session_state.page = "Kampdata"
             st.rerun()
-        if st.button("📈 Udviklingsanalyse", key="nav_analysis"):
+        if st.button("📈 Udviklingsanalyse", key="nav_analysis", use_container_width=True):
             st.session_state.page = "Udviklingsanalyse"
             st.rerun()
 
