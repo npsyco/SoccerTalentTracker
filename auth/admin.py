@@ -11,50 +11,51 @@ import os
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 def create_initial_admin():
-    """Create initial admin user if no users exist"""
+    """Create or update admin user with environment credentials"""
     auth_db = AuthDB()
 
     try:
         with psycopg2.connect(auth_db.conn_string) as conn:
             with conn.cursor() as cur:
-                # Check if any users exist
-                cur.execute("SELECT COUNT(*) FROM users")
-                user_count = cur.fetchone()[0]
+                # Get admin credentials from environment variables
+                admin_username = os.environ.get('ADMIN_USERNAME')
+                admin_password = os.environ.get('ADMIN_PASSWORD')
+                admin_email = os.environ.get('ADMIN_EMAIL')
 
-                if user_count == 0:
-                    # Get admin role ID
-                    cur.execute("SELECT id FROM roles WHERE name = 'admin'")
-                    admin_role_id = cur.fetchone()[0]
+                if not all([admin_username, admin_password, admin_email]):
+                    st.error("Admin credentials not found in environment variables")
+                    return
 
-                    # Get admin credentials from environment variables
-                    admin_username = os.environ.get('ADMIN_USERNAME')
-                    admin_password = os.environ.get('ADMIN_PASSWORD')
-                    admin_email = os.environ.get('ADMIN_EMAIL')
+                # Get admin role ID
+                cur.execute("SELECT id FROM roles WHERE name = 'admin'")
+                admin_role_id = cur.fetchone()[0]
 
-                    if not all([admin_username, admin_password, admin_email]):
-                        st.error("Admin credentials not found in environment variables")
-                        return
+                # Check if admin user exists
+                cur.execute("SELECT id FROM users WHERE role_id = %s", (admin_role_id,))
+                admin_exists = cur.fetchone()
 
-                    # Create admin user with active status
-                    password_hash = pwd_context.hash(admin_password)
+                # Create password hash
+                password_hash = pwd_context.hash(admin_password)
+
+                if admin_exists:
+                    # Update existing admin
+                    cur.execute("""
+                        UPDATE users 
+                        SET username = %s, password_hash = %s, email = %s, status = 'active'
+                        WHERE id = %s
+                    """, (admin_username, password_hash, admin_email, admin_exists[0]))
+                else:
+                    # Create new admin user
                     cur.execute("""
                         INSERT INTO users (username, password_hash, email, role_id, status)
                         VALUES (%s, %s, %s, %s, 'active')
                     """, (admin_username, password_hash, admin_email, admin_role_id))
 
-                    conn.commit()
+                conn.commit()
+                st.success(f"Admin user '{admin_username}' set up successfully")
 
-                    st.success(f"Admin user '{admin_username}' created successfully")
-
-                    # Create a test coach user
-                    auth_db.register_user(
-                        username="test_coach",
-                        password="test123",
-                        email="coach@test.com",
-                        role="coach"
-                    )
     except Exception as e:
-        st.error(f"Error creating initial admin: {str(e)}")
+        st.error(f"Error setting up admin user: {str(e)}")
 
 def show_user_management():
     """Show user management interface for admins"""
