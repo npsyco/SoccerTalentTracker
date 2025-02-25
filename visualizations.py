@@ -55,12 +55,17 @@ class Visualizer:
                     line_width=0,
                 )
 
-        # Add markers for data points
+        # Add markers and lines for data points
         fig.add_trace(go.Scatter(
             x=x_labels,
             y=data[category],
-            mode='markers',
+            mode='lines+markers',
             name=category,
+            line=dict(
+                color=self.colors[category],
+                width=2,
+                shape='spline'
+            ),
             marker=dict(
                 color=self.colors[category],
                 size=10,
@@ -138,13 +143,18 @@ class Visualizer:
                     line_width=0,
                 )
 
-        # Add data points for each category
+        # Add data points and lines for each category
         for category in ['Boldholder', 'Medspiller', 'Presspiller', 'Støttespiller']:
             fig.add_trace(go.Scatter(
                 x=x_labels,
                 y=data[category],
-                mode='markers',
+                mode='lines+markers',
                 name=category,
+                line=dict(
+                    color=self.colors[category],
+                    width=2,
+                    shape='spline'
+                ),
                 marker=dict(
                     color=self.colors[category],
                     size=10,
@@ -222,12 +232,17 @@ class Visualizer:
                     line_width=0,
                 )
 
-        # Add markers for data points
+        # Add markers and lines for data points
         fig.add_trace(go.Scatter(
             x=x_labels,
             y=data[category],
-            mode='markers',
+            mode='lines+markers',
             name=category,
+            line=dict(
+                color=self.colors[category],
+                width=2,
+                shape='spline'
+            ),
             marker=dict(
                 color=self.colors[category],
                 size=10,
@@ -305,13 +320,18 @@ class Visualizer:
                     line_width=0,
                 )
 
-        # Add data points for each category
+        # Add data points and lines for each category
         for category in ['Boldholder', 'Medspiller', 'Presspiller', 'Støttespiller']:
             fig.add_trace(go.Scatter(
                 x=x_labels,
                 y=data[category],
-                mode='markers',
+                mode='lines+markers',
                 name=category,
+                line=dict(
+                    color=self.colors[category],
+                    width=2,
+                    shape='spline'
+                ),
                 marker=dict(
                     color=self.colors[category],
                     size=10,
@@ -358,11 +378,16 @@ class Visualizer:
             return go.Figure()
 
         categories = ['Boldholder', 'Medspiller', 'Presspiller', 'Støttespiller']
+
+        # Calculate subplot dimensions
+        height_per_subplot = 300  # Increased height per subplot
+        total_height = height_per_subplot * len(categories)
+
         fig = make_subplots(
             rows=len(categories),
             cols=1,
             subplot_titles=categories,
-            vertical_spacing=0.1
+            vertical_spacing=0.12  # Increased spacing between subplots
         )
 
         # Add letter grade regions to each subplot
@@ -415,8 +440,13 @@ class Visualizer:
                     go.Scatter(
                         x=x_labels,
                         y=data[category],
-                        mode='markers',
+                        mode='lines+markers',
                         name=player_name,
+                        line=dict(
+                            color=player_color,
+                            width=2,
+                            shape='spline'
+                        ),
                         marker=dict(
                             color=player_color,
                             size=10,
@@ -431,6 +461,7 @@ class Visualizer:
 
         # Update layout
         fig.update_layout(
+            height=total_height,  # Use calculated height
             title="Spillersammenligning over tid",
             showlegend=True,
             legend=dict(
@@ -453,8 +484,7 @@ class Visualizer:
                     tickvals=[1, 2, 3, 4],
                     range=[0.5, 4.5],
                     showgrid=False,
-                    fixedrange=True,
-                    constrain='domain'
+                    fixedrange=True
                 ),
                 row=idx,
                 col=1
