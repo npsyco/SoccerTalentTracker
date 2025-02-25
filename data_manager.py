@@ -44,19 +44,20 @@ class DataManager:
         return pd.read_csv(self.players_file)
 
     def add_match_record(self, date, opponent, players_df, ratings):
-        """Add match performance records for all players"""
+        """Add match performance records for selected players"""
         matches_df = pd.read_csv(self.matches_file)
 
         new_records = []
         for _, player in players_df.iterrows():
+            player_name = player['Name']
             record = {
                 'Date': date.strftime('%Y-%m-%d'),
                 'Opponent': opponent,
-                'Player': player['Name'],
-                'Boldholder': ratings['Boldholder'],
-                'Medspiller': ratings['Medspiller'],
-                'Presspiller': ratings['Presspiller'],
-                'Støttespiller': ratings['Støttespiller']
+                'Player': player_name,
+                'Boldholder': ratings['Boldholder'][player_name],
+                'Medspiller': ratings['Medspiller'][player_name],
+                'Presspiller': ratings['Presspiller'][player_name],
+                'Støttespiller': ratings['Støttespiller'][player_name]
             }
             new_records.append(record)
 
