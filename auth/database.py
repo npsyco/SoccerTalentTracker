@@ -24,7 +24,7 @@ class AuthDB:
         """Create necessary tables if they don't exist"""
         with psycopg2.connect(self.conn_string) as conn:
             with conn.cursor() as cur:
-                # Create roles table without using sequence
+                # Create roles table
                 cur.execute("""
                     CREATE TABLE IF NOT EXISTS roles (
                         id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
@@ -32,7 +32,7 @@ class AuthDB:
                     )
                 """)
 
-                # Create users table without using sequence, add status field
+                # Create users table
                 cur.execute("""
                     CREATE TABLE IF NOT EXISTS users (
                         id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
@@ -55,6 +55,31 @@ class AuthDB:
                     """, (role,))
 
                 conn.commit()
+
+    def create_user(self, username: str, password: str, email: str, role: str) -> bool:
+        """Create a new user with active status"""
+        try:
+            password_hash = pwd_context.hash(password)
+
+            with psycopg2.connect(self.conn_string) as conn:
+                with conn.cursor() as cur:
+                    # Get role ID
+                    cur.execute("SELECT id FROM roles WHERE name = %s", (role,))
+                    role_id = cur.fetchone()
+                    if not role_id:
+                        return False
+
+                    # Insert new user with active status
+                    cur.execute("""
+                        INSERT INTO users (username, password_hash, email, role_id, status)
+                        VALUES (%s, %s, %s, %s, 'active')
+                    """, (username, password_hash, email, role_id[0]))
+
+                    conn.commit()
+                    return True
+
+        except psycopg2.Error:
+            return False
 
     def register_user(self, username: str, password: str, email: str, role: str) -> bool:
         """Register a new user with pending status"""

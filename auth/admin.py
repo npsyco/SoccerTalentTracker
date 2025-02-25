@@ -2,11 +2,47 @@ import streamlit as st
 from .database import AuthDB
 from .session import SessionManager
 import psycopg2
+from psycopg2.extras import DictCursor
 from typing import List, Dict
 from passlib.context import CryptContext
 
 # Password hashing configuration
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+def create_initial_admin():
+    """Create initial admin user if no users exist"""
+    auth_db = AuthDB()
+
+    try:
+        with psycopg2.connect(auth_db.conn_string) as conn:
+            with conn.cursor() as cur:
+                # Check if any users exist
+                cur.execute("SELECT COUNT(*) FROM users")
+                user_count = cur.fetchone()[0]
+
+                if user_count == 0:
+                    # Get admin role ID
+                    cur.execute("SELECT id FROM roles WHERE name = 'admin'")
+                    admin_role_id = cur.fetchone()[0]
+
+                    # Create admin user with active status
+                    password_hash = pwd_context.hash('admin')
+                    cur.execute("""
+                        INSERT INTO users (username, password_hash, email, role_id, status)
+                        VALUES ('admin', %s, 'admin@example.com', %s, 'active')
+                    """, (password_hash, admin_role_id))
+
+                    conn.commit()
+
+                    # Create a test coach user
+                    auth_db.register_user(
+                        username="test_coach",
+                        password="test123",
+                        email="coach@test.com",
+                        role="coach"
+                    )
+    except Exception as e:
+        st.error(f"Error creating initial admin: {str(e)}")
 
 def show_user_management():
     """Show user management interface for admins"""
@@ -116,16 +152,19 @@ def show_user_management():
                 with col2:
                     # Delete user section
                     st.subheader("Slet Bruger")
-                    if st.button("Slet Bruger"):
-                        confirm_delete = st.button("Bekræft sletning")
-                        st.warning(f"Er du sikker på, at du vil slette brugeren '{selected_user}'?")
+                    delete_btn = st.button("Slet Bruger")
 
-                        if confirm_delete:
-                            if delete_user(auth_db, selected_user):
-                                st.success("Bruger slettet!")
-                                st.rerun()
-                            else:
-                                st.error("Kunne ikke slette bruger")
+                    if delete_btn:
+                        confirm_col1, confirm_col2 = st.columns(2)
+                        with confirm_col1:
+                            st.warning(f"Er du sikker på, at du vil slette brugeren '{selected_user}'?")
+                        with confirm_col2:
+                            if st.button("Ja, slet bruger"):
+                                if delete_user(auth_db, selected_user):
+                                    st.success("Bruger slettet!")
+                                    st.rerun()
+                                else:
+                                    st.error("Kunne ikke slette bruger")
 
     with tab2:
         # Pending Users Approval
@@ -187,11 +226,12 @@ def get_all_users(auth_db: AuthDB) -> List[Dict]:
     """Get all users with their roles"""
     try:
         with psycopg2.connect(auth_db.conn_string) as conn:
-            with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
+            with conn.cursor(cursor_factory=DictCursor) as cur:
                 cur.execute("""
                     SELECT u.username, u.email, u.created_at, r.name as role_name
                     FROM users u
                     JOIN roles r ON u.role_id = r.id
+                    WHERE u.status = 'active'
                     ORDER BY u.created_at DESC
                 """)
                 return [dict(row) for row in cur.fetchall()]
@@ -212,7 +252,7 @@ def update_user(auth_db: AuthDB, username: str, email: str, password: str, role:
 
                 # Update user
                 if password:
-                    password_hash = auth_db.pwd_context.hash(password)
+                    password_hash = pwd_context.hash(password)
                     cur.execute("""
                         UPDATE users 
                         SET email = %s, password_hash = %s, role_id = %s
@@ -240,45 +280,3 @@ def delete_user(auth_db: AuthDB, username: str) -> bool:
                 return True
     except psycopg2.Error:
         return False
-
-def create_initial_admin():
-    """Create initial admin user if no users exist"""
-    auth_db = AuthDB()
-
-    try:
-        # Check if admin user exists
-        with psycopg2.connect(auth_db.conn_string) as conn:
-            with conn.cursor() as cur:
-                cur.execute("SELECT COUNT(*) FROM users")
-                user_count = cur.fetchone()[0]
-
-                if user_count == 0:
-                    # Get admin role ID
-                    cur.execute("SELECT id FROM roles WHERE name = 'admin'")
-                    admin_role_id = cur.fetchone()[0]
-
-                    # Create admin user with active status
-                    password_hash = pwd_context.hash('admin')
-                    cur.execute("""
-                        INSERT INTO users (username, password_hash, email, role_id, status)
-                        VALUES ('admin', %s, 'admin@example.com', %s, 'active')
-                    """, (password_hash, admin_role_id))
-
-                    conn.commit()
-
-                    st.warning("""
-                        Initial admin user created:
-                        Username: admin
-                        Password: admin
-                        Log ind og skift adgangskoden med det samme!
-                    """)
-
-                    # Create a test coach user
-                    auth_db.register_user(
-                        username="test_coach",
-                        password="test123",
-                        email="coach@test.com",
-                        role="coach"
-                    )
-    except Exception as e:
-        st.error(f"Error creating initial admin: {str(e)}")
