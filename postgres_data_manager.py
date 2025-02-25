@@ -170,50 +170,23 @@ class PostgresDataManager:
                 SELECT 
                     date,
                     time,
-                    ROUND(AVG(boldholder_val)::numeric, 2) as boldholder_avg,
-                    ROUND(AVG(medspiller_val)::numeric, 2) as medspiller_avg,
-                    ROUND(AVG(presspiller_val)::numeric, 2) as presspiller_avg,
-                    ROUND(AVG(stottespiller_val)::numeric, 2) as stottespiller_avg,
+                    ROUND(AVG(boldholder_val)::numeric, 2) as "Boldholder",
+                    ROUND(AVG(medspiller_val)::numeric, 2) as "Medspiller",
+                    ROUND(AVG(presspiller_val)::numeric, 2) as "Presspiller",
+                    ROUND(AVG(stottespiller_val)::numeric, 2) as "Støttespiller",
                     COUNT(*) as player_count
                 FROM match_ratings
                 GROUP BY date, time
                 HAVING COUNT(*) > 0
             )
-            SELECT 
-                date,
-                time,
-                -- Convert averages back to letter grades with more precise thresholds
-                CASE 
-                    WHEN boldholder_avg >= 3.75 THEN 'A'
-                    WHEN boldholder_avg >= 2.75 THEN 'B'
-                    WHEN boldholder_avg >= 1.75 THEN 'C'
-                    ELSE 'D'
-                END as "Boldholder",
-                CASE 
-                    WHEN medspiller_avg >= 3.75 THEN 'A'
-                    WHEN medspiller_avg >= 2.75 THEN 'B'
-                    WHEN medspiller_avg >= 1.75 THEN 'C'
-                    ELSE 'D'
-                END as "Medspiller",
-                CASE 
-                    WHEN presspiller_avg >= 3.75 THEN 'A'
-                    WHEN presspiller_avg >= 2.75 THEN 'B'
-                    WHEN presspiller_avg >= 1.75 THEN 'C'
-                    ELSE 'D'
-                END as "Presspiller",
-                CASE 
-                    WHEN stottespiller_avg >= 3.75 THEN 'A'
-                    WHEN stottespiller_avg >= 2.75 THEN 'B'
-                    WHEN stottespiller_avg >= 1.75 THEN 'C'
-                    ELSE 'D'
-                END as "Støttespiller"
+            SELECT *
             FROM match_averages
             ORDER BY date, time
         """
         params = []
 
         if start_date:
-            query += " WHERE date >= %s"
+            query = f"{query} WHERE date >= %s"
             params.append(start_date)
         if end_date:
             query += " AND date <= %s" if start_date else " WHERE date <= %s"
@@ -225,13 +198,8 @@ class PostgresDataManager:
                 if not df.empty:
                     # Set date as index
                     df.set_index(['date', 'time'], inplace=True)
-                    # Ensure proper categorical ordering
-                    for category in ['Boldholder', 'Medspiller', 'Presspiller', 'Støttespiller']:
-                        df[category] = pd.Categorical(
-                            df[category],
-                            categories=self.rating_order,
-                            ordered=True
-                        )
+                    # Drop the player_count column as it's no longer needed
+                    df = df.drop('player_count', axis=1)
                 return df
         except psycopg2.Error as e:
             print(f"Error getting team performance: {e}")

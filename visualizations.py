@@ -137,24 +137,54 @@ class Visualizer:
             y=data[category],
             mode='lines+markers',
             name=category,
-            line=dict(color=self.colors[category], width=2, shape='spline'),  # Make lines curved
+            line=dict(color=self.colors[category], width=2, shape='spline'),
             marker=dict(size=8)
         ))
+
+        # Create custom y-axis with both numerical values and letter grades
+        y_ticks = list(range(1, 5))
+        y_labels = [
+            "1.0 (D)",
+            "2.0 (C)",
+            "3.0 (B)",
+            "4.0 (A)"
+        ]
 
         fig.update_layout(
             title=f"Hold {category} udvikling over tid",
             xaxis_title="Dato",
             yaxis_title="Holdvurdering",
             yaxis=dict(
-                ticktext=self.rating_order,
-                tickvals=self.rating_order,
-                categoryorder='array',
-                categoryarray=self.rating_order,
-                range=[-0.5, 3.5]  # Ensure full range is always shown
+                ticktext=y_labels,
+                tickvals=y_ticks,
+                range=[0.5, 4.5],  # Extend range slightly for better visibility
+                gridcolor='lightgrey',
+                showgrid=True
             ),
             height=500,
             showlegend=True
         )
+
+        # Add letter grade regions
+        regions = [
+            ("D", 0.5, 1.75, "#ffebee"),  # Light red
+            ("C", 1.75, 2.75, "#fff3e0"),  # Light orange
+            ("B", 2.75, 3.75, "#e8f5e9"),  # Light green
+            ("A", 3.75, 4.5, "#e3f2fd")    # Light blue
+        ]
+
+        for grade, y0, y1, color in regions:
+            fig.add_shape(
+                type="rect",
+                x0=x_labels[0],
+                x1=x_labels[-1],
+                y0=y0,
+                y1=y1,
+                fillcolor=color,
+                opacity=0.2,
+                layer="below",
+                line_width=0,
+            )
 
         return fig
 
@@ -192,26 +222,56 @@ class Visualizer:
             else:
                 x_labels.append(dates[i])
 
+        # Add letter grade regions first (so they appear behind the lines)
+        regions = [
+            ("D", 0.5, 1.75, "#ffebee"),  # Light red
+            ("C", 1.75, 2.75, "#fff3e0"),  # Light orange
+            ("B", 2.75, 3.75, "#e8f5e9"),  # Light green
+            ("A", 3.75, 4.5, "#e3f2fd")    # Light blue
+        ]
+
+        for grade, y0, y1, color in regions:
+            fig.add_shape(
+                type="rect",
+                x0=x_labels[0],
+                x1=x_labels[-1],
+                y0=y0,
+                y1=y1,
+                fillcolor=color,
+                opacity=0.2,
+                layer="below",
+                line_width=0,
+            )
+
         for category in ['Boldholder', 'Medspiller', 'Presspiller', 'Støttespiller']:
             fig.add_trace(go.Scatter(
                 x=x_labels,
                 y=data[category],
                 mode='lines+markers',
                 name=category,
-                line=dict(color=self.colors[category], width=2, shape='spline'),  # Make lines curved
+                line=dict(color=self.colors[category], width=2, shape='spline'),
                 marker=dict(size=8)
             ))
+
+        # Create custom y-axis with both numerical values and letter grades
+        y_ticks = list(range(1, 5))
+        y_labels = [
+            "1.0 (D)",
+            "2.0 (C)",
+            "3.0 (B)",
+            "4.0 (A)"
+        ]
 
         fig.update_layout(
             title="Hold udvikling over tid",
             xaxis_title="Dato",
             yaxis_title="Holdvurdering",
             yaxis=dict(
-                ticktext=self.rating_order,
-                tickvals=self.rating_order,
-                categoryorder='array',
-                categoryarray=self.rating_order,
-                range=[-0.5, 3.5]  # Ensure full range is always shown
+                ticktext=y_labels,
+                tickvals=y_ticks,
+                range=[0.5, 4.5],  # Extend range slightly for better visibility
+                gridcolor='lightgrey',
+                showgrid=True
             ),
             height=500,
             showlegend=True
@@ -221,7 +281,6 @@ class Visualizer:
 
     def plot_player_comparison(self, player_data_dict):
         """Plot comparison between multiple players
-
         Args:
             player_data_dict: Dictionary with player names as keys and their performance data as values
         """
