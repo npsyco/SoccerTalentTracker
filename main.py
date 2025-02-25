@@ -16,6 +16,17 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# Hide top navigation menu
+st.markdown("""
+    <style>
+        #MainMenu {visibility: hidden;}
+        header {visibility: hidden;}
+        div[data-testid="stToolbar"] {
+            display: none;
+        }
+    </style>
+""", unsafe_allow_html=True)
+
 def main():
     # Initialize session state
     initialize_session_state()
@@ -33,9 +44,6 @@ def main():
             """
             <style>
                 [data-testid="stSidebar"][aria-expanded="true"]{
-                    display: none;
-                }
-                div[data-testid="stToolbar"] {
                     display: none;
                 }
             </style>
