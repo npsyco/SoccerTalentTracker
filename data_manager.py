@@ -88,6 +88,16 @@ class DataManager:
             return years
         return []
 
+    def _rating_to_numeric(self, rating):
+        """Convert letter rating to numeric value"""
+        rating_map = {'D': 0, 'C': 1, 'B': 2, 'A': 3}
+        return rating_map.get(rating, 0)
+
+    def _numeric_to_rating(self, numeric):
+        """Convert numeric value to letter rating"""
+        rating_map = {0: 'D', 1: 'C', 2: 'B', 3: 'A'}
+        return rating_map.get(int(round(numeric)), 'D')
+
     def get_team_performance(self, start_date=None, end_date=None):
         """Get team's overall performance history within date range"""
         matches_df = pd.read_csv(self.matches_file)
@@ -104,21 +114,23 @@ class DataManager:
         if matches_df.empty:
             return pd.DataFrame()
 
-        # Convert rating columns to categorical with custom ordering
         categories = ['Boldholder', 'Medspiller', 'Presspiller', 'Støttespiller']
-        for col in categories:
-            matches_df[col] = pd.Categorical(matches_df[col], categories=['D', 'C', 'B', 'A'], ordered=True)
-            matches_df[col] = matches_df[col].cat.codes  # Convert to numeric (0-3)
+        team_performance = pd.DataFrame()
 
-        # Group by date and calculate mean
-        team_performance = matches_df.groupby('Date')[categories].mean()
+        # Process each date separately
+        for date in matches_df['Date'].unique():
+            date_data = matches_df[matches_df['Date'] == date]
+            date_ratings = {}
 
-        # Convert back to letters
-        for col in categories:
-            team_performance[col] = pd.Categorical.from_codes(
-                team_performance[col].round().astype(int),
-                categories=['D', 'C', 'B', 'A'],
-                ordered=True
-            )
+            # Calculate mode (most common rating) for each category
+            for category in categories:
+                ratings = date_data[category].value_counts()
+                date_ratings[category] = ratings.index[0] if not ratings.empty else 'D'
 
-        return team_performance
+            # Add to team performance dataframe
+            team_performance = pd.concat([
+                team_performance,
+                pd.DataFrame([date_ratings], index=[date])
+            ])
+
+        return team_performance.sort_index()
