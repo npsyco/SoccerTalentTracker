@@ -5,7 +5,7 @@ from visualizations import Visualizer
 from utils import initialize_session_state
 from auth.session import SessionManager
 from auth.database import AuthDB
-from auth.admin import create_initial_admin
+from auth.admin import create_initial_admin, show_user_management
 from auth.login import show_login_page, show_logout_button
 from datetime import datetime
 
@@ -84,13 +84,33 @@ def main():
 
     # Show navigation and content
     with st.sidebar:
-        # Navigation menu
-        page = st.selectbox(
-            "Navigation",
-            ["Spillere", "Kampdata", "Udviklingsanalyse"]
-        )
+        # For admin users, show admin panel option
+        if st.session_state.user['role'] == 'admin':
+            if st.button("🔧 Administration"):
+                st.session_state.page = "Admin"
+                st.rerun()
 
-    if page == "Spillere":
+        st.markdown("---")
+
+        # Simplified navigation - removed selectbox in favor of direct buttons
+        if st.button("👥 Spillere", key="nav_players"):
+            st.session_state.page = "Spillere"
+            st.rerun()
+        if st.button("📊 Kampdata", key="nav_matches"):
+            st.session_state.page = "Kampdata"
+            st.rerun()
+        if st.button("📈 Udviklingsanalyse", key="nav_analysis"):
+            st.session_state.page = "Udviklingsanalyse"
+            st.rerun()
+
+    # Initialize page state if not set
+    if 'page' not in st.session_state:
+        st.session_state.page = "Spillere"
+
+    # Show selected page content
+    if st.session_state.page == "Admin" and st.session_state.user['role'] == 'admin':
+        show_user_management()
+    elif st.session_state.page == "Spillere":
         # Require coach or admin role
         if not session_manager.require_role(['admin', 'coach']):
             return
@@ -126,7 +146,7 @@ def main():
                         st.success(f"Spiller slettet: {player_to_delete}")
                         st.rerun()
 
-    elif page == "Kampdata":
+    elif st.session_state.page == "Kampdata":
         # Require coach or assistant_coach role
         if not session_manager.require_role(['admin', 'coach', 'assistant_coach']):
             return
@@ -241,7 +261,7 @@ def main():
                         st.success("Kampdata gemt!")
                         st.rerun()
 
-    else:  # Udviklingsanalyse
+    elif st.session_state.page == "Udviklingsanalyse":
         # All roles can view analysis
         if not session_manager.require_login():
             return

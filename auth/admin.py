@@ -187,7 +187,15 @@ def create_initial_admin():
                             Password: admin
                             Please log in and change the password immediately!
                         """)
-                    else:
-                        st.error("Failed to create initial admin user")
+
+                    # Create a test coach user
+                    auth_db.create_user(
+                        username="test_coach",
+                        password="test123",
+                        email="coach@test.com",
+                        role="coach"
+                    )
+                else:
+                    st.error("Failed to create initial admin user")
     except Exception as e:
         st.error(f"Error creating initial admin: {str(e)}")
