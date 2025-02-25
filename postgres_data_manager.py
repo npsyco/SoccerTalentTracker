@@ -132,39 +132,47 @@ class PostgresDataManager:
     def get_team_performance(self, start_date=None, end_date=None):
         """Get team's overall performance history within date range"""
         query = """
-            WITH match_ratings AS (
+            WITH match_dates AS (
+                -- First get only valid match dates
+                SELECT DISTINCT date::date as date, time::time as time
+                FROM matches
+                WHERE date IS NOT NULL 
+                AND date != '1970-01-01'
+                AND EXTRACT(YEAR FROM date) >= 2000
+                AND EXTRACT(YEAR FROM date) <= EXTRACT(YEAR FROM CURRENT_DATE)
+            ),
+            match_ratings AS (
                 SELECT 
-                    date::date as date,
-                    time::time as time,
+                    m.date,
+                    m.time,
                     -- Convert ratings to numeric values with explicit casting
-                    CASE boldholder 
+                    CASE m.boldholder 
                         WHEN 'A' THEN 4.0 
                         WHEN 'B' THEN 3.0 
                         WHEN 'C' THEN 2.0 
                         WHEN 'D' THEN 1.0 
                     END::numeric as boldholder_val,
-                    CASE medspiller 
+                    CASE m.medspiller 
                         WHEN 'A' THEN 4.0 
                         WHEN 'B' THEN 3.0 
                         WHEN 'C' THEN 2.0 
                         WHEN 'D' THEN 1.0 
                     END::numeric as medspiller_val,
-                    CASE presspiller 
+                    CASE m.presspiller 
                         WHEN 'A' THEN 4.0 
                         WHEN 'B' THEN 3.0 
                         WHEN 'C' THEN 2.0 
                         WHEN 'D' THEN 1.0 
                     END::numeric as presspiller_val,
-                    CASE stottespiller 
+                    CASE m.stottespiller 
                         WHEN 'A' THEN 4.0 
                         WHEN 'B' THEN 3.0 
                         WHEN 'C' THEN 2.0 
                         WHEN 'D' THEN 1.0 
                     END::numeric as stottespiller_val
-                FROM matches
-                WHERE date IS NOT NULL 
-                AND date != '1970-01-01'  -- Exclude Unix epoch
-                AND EXTRACT(YEAR FROM date) >= 2000  -- Reasonable date range
+                FROM matches m
+                JOIN match_dates d ON m.date::date = d.date AND 
+                                    (m.time::time = d.time OR (m.time IS NULL AND d.time IS NULL))
             ),
             match_averages AS (
                 SELECT 
@@ -179,19 +187,16 @@ class PostgresDataManager:
                 GROUP BY date, time
                 HAVING COUNT(*) > 0
             )
-            SELECT *
-            FROM match_averages
-            WHERE date IS NOT NULL
-            AND date != '1970-01-01'
+            SELECT * FROM match_averages
             ORDER BY date, time
         """
         params = []
 
         if start_date:
-            query = f"{query} AND date >= %s"
+            query = query + " WHERE date >= %s"
             params.append(start_date)
         if end_date:
-            query += " AND date <= %s"
+            query += " AND date <= %s" if start_date else " WHERE date <= %s"
             params.append(end_date)
 
         try:

@@ -10,5 +10,6 @@ dependencies = [
     "psycopg2-binary>=2.9.10",
     "python-jose[cryptography]>=3.4.0",
     "streamlit>=1.42.2",
+    "trafilatura>=2.0.0",
     "twilio>=9.4.6",
 ]

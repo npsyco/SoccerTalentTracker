@@ -417,12 +417,35 @@ def main():
         else:  # Spillersammenligning
             players_df = dm.get_players()
             if not players_df.empty:
-                selected_players = st.multiselect(
-                    "Vælg spillere at sammenligne",
-                    players_df['Name'].tolist(),
-                    max_selections=4,  # Limit to 4 players for better visualization
-                    placeholder="Vælg én eller flere spiller"
-                )
+                st.write("### Vælg spillere at sammenligne")
+                st.write("Vælg op til 4 spillere at sammenligne ved at markere afkrydsningsfelterne nedenfor.")
+
+                # Create a grid layout for player selection checkboxes
+                cols_per_row = 3
+                all_players = players_df['Name'].tolist()
+
+                # Calculate number of rows needed
+                num_rows = (len(all_players) + cols_per_row - 1) // cols_per_row
+
+                # Initialize selected players list
+                selected_players = []
+
+                # Create checkbox grid
+                for row in range(num_rows):
+                    cols = st.columns(cols_per_row)
+                    for col in range(cols_per_row):
+                        player_idx = row * cols_per_row + col
+                        if player_idx < len(all_players):
+                            player_name = all_players[player_idx]
+                            # Only allow selection if less than 4 players are selected
+                            disabled = len(selected_players) >= 4 and player_name not in selected_players
+                            with cols[col]:
+                                if st.checkbox(
+                                    player_name,
+                                    key=f"player_check_{player_name}",
+                                    disabled=disabled
+                                ):
+                                    selected_players.append(player_name)
 
                 if selected_players:
                     # Get data for all selected players
