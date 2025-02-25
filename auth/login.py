@@ -54,34 +54,32 @@ def show_login_page():
                 else:
                     st.error("Ugyldigt brugernavn eller adgangskode")
 
-        # New user section
+        # Registration section with expander
         st.markdown("---")
-        st.markdown("##### 🆕 Ny bruger?")
-        st.markdown("Opret en konto herunder og vent på administrator godkendelse.")
+        with st.expander("🆕 Ny bruger? Klik her for at registrere"):
+            # Registration form
+            with st.form("registration_form"):
+                new_username = st.text_input("Vælg brugernavn")
+                new_email = st.text_input("Email")
+                new_password = st.text_input("Vælg adgangskode", type="password")
+                role = st.selectbox(
+                    "Vælg rolle",
+                    ["Træner", "Assistent", "Tilskuer"]
+                )
 
-        # Registration form
-        with st.form("registration_form"):
-            new_username = st.text_input("Vælg brugernavn")
-            new_email = st.text_input("Email")
-            new_password = st.text_input("Vælg adgangskode", type="password")
-            role = st.selectbox(
-                "Vælg rolle",
-                ["Træner", "Assistent", "Tilskuer"]
-            )
+                # Map Danish roles to database roles
+                role_map = {
+                    "Træner": "coach",
+                    "Assistent": "assistant_coach",
+                    "Tilskuer": "observer"
+                }
 
-            # Map Danish roles to database roles
-            role_map = {
-                "Træner": "coach",
-                "Assistent": "assistant_coach",
-                "Tilskuer": "observer"
-            }
-
-            if st.form_submit_button("Registrer"):
-                auth_db = AuthDB()
-                if auth_db.register_user(new_username, new_password, new_email, role_map[role]):
-                    st.success("Registrering gennemført! Vent venligst på administrator godkendelse.")
-                else:
-                    st.error("Kunne ikke oprette bruger. Brugernavn eller email er måske allerede i brug.")
+                if st.form_submit_button("Registrer"):
+                    auth_db = AuthDB()
+                    if auth_db.register_user(new_username, new_password, new_email, role_map[role]):
+                        st.success("Registrering gennemført! Vent venligst på administrator godkendelse.")
+                    else:
+                        st.error("Kunne ikke oprette bruger. Brugernavn eller email er måske allerede i brug.")
 
 def show_logout_button():
     session_manager = SessionManager()
