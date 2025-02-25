@@ -23,18 +23,18 @@ class AuthDB:
         """Create necessary tables if they don't exist"""
         with psycopg2.connect(self.conn_string) as conn:
             with conn.cursor() as cur:
-                # Create roles table
+                # Create roles table without using sequence
                 cur.execute("""
                     CREATE TABLE IF NOT EXISTS roles (
-                        id SERIAL PRIMARY KEY,
+                        id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
                         name VARCHAR(50) UNIQUE NOT NULL
                     )
                 """)
 
-                # Create users table
+                # Create users table without using sequence
                 cur.execute("""
                     CREATE TABLE IF NOT EXISTS users (
-                        id SERIAL PRIMARY KEY,
+                        id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
                         username VARCHAR(100) UNIQUE NOT NULL,
                         password_hash VARCHAR(200) NOT NULL,
                         email VARCHAR(100) UNIQUE NOT NULL,
@@ -90,7 +90,7 @@ class AuthDB:
                         WHERE u.username = %s
                     """, (username,))
                     user = cur.fetchone()
-                    
+
                     if user and pwd_context.verify(password, user['password_hash']):
                         return dict(user)
                     return None
