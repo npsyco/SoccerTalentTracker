@@ -162,11 +162,21 @@ def main():
 
                 # Delete player option
                 player_to_delete = st.selectbox("Vælg spiller fra listen der skal slettes", players_df['Name'].tolist())
+
+                # First show delete button
                 if st.button("Slet Spiller"):
-                    if st.warning("Advarsel: Hvis du bekræfter slettes denne spiller og alle spillerens data"):
-                        dm.delete_player(player_to_delete)
-                        st.success(f"Spiller slettet: {player_to_delete}")
-                        st.rerun()
+                    # Show confirmation warning and buttons
+                    st.warning(f"Er du sikker på at du vil slette spilleren '{player_to_delete}'? Dette vil også slette alle spillerens kampdata.")
+
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        if st.button("Ja, slet spiller", key="confirm_delete"):
+                            dm.delete_player(player_to_delete)
+                            st.success(f"Spiller slettet: {player_to_delete}")
+                            st.rerun()
+                    with col2:
+                        if st.button("Nej, behold spiller", key="cancel_delete"):
+                            st.rerun()
 
     elif st.session_state.page == "Kampdata":
         # Require coach or assistant_coach role
