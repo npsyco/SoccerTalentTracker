@@ -116,7 +116,7 @@ def main():
                     best_stat, stat_value = get_player_best_stat(player['Name'], current_user_id)
 
                     # Container for player info and delete button
-                    cols = st.columns([4, 1])
+                    cols = st.columns([4, 2])
 
                     # Player info column
                     with cols[0]:
@@ -124,18 +124,17 @@ def main():
                         if best_stat:
                             st.caption(f"Bedste rolle: {best_stat} (Niveau {stat_value})")
 
-                    # Delete button column
+                    # Delete button column - keep confirmation in same line
                     with cols[1]:
-                        delete_col1, delete_col2 = st.columns([1, 1])
-                        with delete_col2:
+                        col1, col2 = st.columns(2)
+                        with col1:
                             if st.button("🗑️", key=f"delete_{player['Name']}", help="Slet spiller"):
-                                with delete_col1:
-                                    st.warning("Slet?")
-                                    if st.button("✓", key=f"confirm_{player['Name']}"):
+                                with col2:
+                                    if st.button("✓ Slet", key=f"confirm_{player['Name']}"):
                                         if dm.delete_player(player['Name'], current_user_id):
                                             st.success(f"Spiller slettet")
                                             st.rerun()
-                    st.markdown("---")
+
             else:
                 st.info("Ingen spillere fundet")
 
