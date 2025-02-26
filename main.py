@@ -40,36 +40,95 @@ st.markdown("""
         footer {visibility: hidden;}
 
         /* Hide navigation bar */
-        section[data-testid="stSidebarNav"] {
-            display: none;
-        }
-        div[data-testid="stSidebarNavItems"] {
-            display: none;
-        }
-        .css-1d391kg {
-            display: none;
-        }
+        section[data-testid="stSidebarNav"] {display: none;}
+        div[data-testid="stSidebarNavItems"] {display: none;}
+        .css-1d391kg {display: none;}
 
         /* Hide toolbar */
-        div[data-testid="stToolbar"] {
-            display: none;
+        div[data-testid="stToolbar"] {display: none;}
+
+        /* Custom styling to match deployed version */
+        .stApp {
+            background-color: #f8f9fa;
         }
 
-        /* Adjust account info styling */
+        .stButton button {
+            border-radius: 4px;
+            padding: 0.5rem 1rem;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            transition: background-color 0.3s;
+        }
+
+        .stButton button:hover {
+            background-color: #0056b3;
+        }
+
         .stButton button[kind="secondary"] {
+            background-color: #6c757d;
             float: right;
             margin-right: 10px;
         }
 
-        /* Admin impersonation warning */
+        .stButton button[kind="secondary"]:hover {
+            background-color: #545b62;
+        }
+
+        /* Form styling */
+        .stTextInput input {
+            border-radius: 4px;
+            border: 1px solid #ced4da;
+            padding: 0.5rem;
+        }
+
+        /* Dataframe styling */
+        .dataframe {
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+        }
+
+        /* Impersonation warning */
         .impersonation-warning {
-            background-color: #ffebee;
-            border: 1px solid #ef5350;
+            background-color: #fff3cd;
+            border: 1px solid #ffeeba;
             border-radius: 4px;
             padding: 8px;
             margin-bottom: 10px;
-            color: #c62828;
+            color: #856404;
             text-align: center;
+        }
+
+        /* Section headers */
+        h1, h2, h3 {
+            color: #212529;
+            margin-bottom: 1rem;
+        }
+
+        /* Tab styling */
+        .stTabs [data-baseweb="tab-list"] {
+            gap: 2px;
+            background-color: white;
+        }
+
+        .stTabs [data-baseweb="tab"] {
+            padding: 10px 20px;
+            background-color: #f8f9fa;
+        }
+
+        .stTabs [data-baseweb="tab-highlight"] {
+            background-color: #007bff;
+        }
+
+        /* Sidebar styling */
+        [data-testid="stSidebar"] {
+            background-color: white;
+            border-right: 1px solid #dee2e6;
+        }
+
+        [data-testid="stSidebar"] .stButton button {
+            width: 100%;
+            margin-bottom: 0.5rem;
         }
     </style>
 """, unsafe_allow_html=True)
