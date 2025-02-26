@@ -16,7 +16,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Keep only minimal styling for secondary buttons
+# Only style the logout button
 st.markdown("""
     <style>
         button[kind="secondary"] {
@@ -98,7 +98,7 @@ def main():
                             else:
                                 if dm.add_player(player_name, "Not specified", current_user_id):
                                     st.success(f"Spiller tilføjet: {player_name}")
-                                    st.experimental_rerun()
+                                    st.rerun()
                                 else:
                                     st.error(f"Spiller '{player_name}' findes allerede")
                         else:
@@ -123,9 +123,26 @@ def main():
 
                     # Delete button column
                     with cols[1]:
-                        if st.button("🗑️", key=f"delete_{player['Name']}", help="Slet spiller"):
-                            dm.delete_player(player['Name'], current_user_id)
-                            st.experimental_rerun()
+                        delete_key = f"delete_{player['Name']}"
+
+                        # Initialize session state if not exists
+                        if delete_key not in st.session_state:
+                            st.session_state[delete_key] = False
+
+                        # Show either delete button or confirmation
+                        if not st.session_state[delete_key]:
+                            if st.button("🗑️", key=delete_key, help="Slet spiller"):
+                                st.session_state[delete_key] = True
+                                st.rerun()
+                        else:
+                            st.warning(f"Er du sikker på at du vil slette {player['Name']}?")
+                            if st.button("Ja", key=f"confirm_{player['Name']}"):
+                                if dm.delete_player(player['Name'], current_user_id):
+                                    st.session_state[delete_key] = False
+                                    st.rerun()
+                            if st.button("Nej", key=f"cancel_{player['Name']}"):
+                                st.session_state[delete_key] = False
+                                st.rerun()
             else:
                 st.info("Ingen spillere fundet")
 
