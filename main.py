@@ -80,6 +80,7 @@ def main():
 
     st.title("Sorø-Freja Spiller Udviklingsværktøj")
 
+    # Show navigation and content based on page state
     if st.session_state.page == "Spillere":
         st.header("Spillere")
 
@@ -115,8 +116,8 @@ def main():
                 for _, player in players_df.iterrows():
                     best_stat, stat_value = get_player_best_stat(player['Name'], current_user_id)
 
-                    # Container for player info and delete button
-                    cols = st.columns([4, 2])
+                    # Create container for player info and delete button
+                    cols = st.columns([4, 1])
 
                     # Player info column
                     with cols[0]:
@@ -124,17 +125,30 @@ def main():
                         if best_stat:
                             st.caption(f"Bedste rolle: {best_stat} (Niveau {stat_value})")
 
-                    # Delete button column - keep confirmation in same line
+                    # Delete button column
                     with cols[1]:
-                        col1, col2 = st.columns(2)
-                        with col1:
-                            if st.button("🗑️", key=f"delete_{player['Name']}", help="Slet spiller"):
-                                with col2:
-                                    if st.button("✓ Slet", key=f"confirm_{player['Name']}"):
-                                        if dm.delete_player(player['Name'], current_user_id):
-                                            st.success(f"Spiller slettet")
-                                            st.rerun()
+                        delete_key = f"delete_{player['Name']}"
 
+                        # Initialize session state if not exists
+                        if delete_key not in st.session_state:
+                            st.session_state[delete_key] = False
+
+                        # Show either delete button or confirmation buttons
+                        if not st.session_state[delete_key]:
+                            if st.button("🗑️", key=f"delete_button_{player['Name']}", help="Slet spiller"):
+                                st.session_state[delete_key] = True
+                                st.rerun()
+                        else:
+                            # More compact confirmation UI
+                            st.caption("Slet? ✓/❌")
+                            if st.button("✓", key=f"confirm_{player['Name']}", help="Ja, slet"):
+                                if dm.delete_player(player['Name'], current_user_id):
+                                    st.success("Spiller slettet")
+                                    st.session_state[delete_key] = False
+                                    st.rerun()
+                            if st.button("❌", key=f"cancel_{player['Name']}", help="Nej, behold"):
+                                st.session_state[delete_key] = False
+                                st.rerun()
             else:
                 st.info("Ingen spillere fundet")
 
