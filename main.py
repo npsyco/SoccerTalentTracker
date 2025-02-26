@@ -16,9 +16,10 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Keep only essential navigation hiding
+# Hide navigation and apply dark theme
 st.markdown("""
     <style>
+        /* Core navigation hiding */
         #MainMenu {visibility: hidden;}
         header {visibility: hidden;}
         footer {visibility: hidden;}
@@ -26,7 +27,13 @@ st.markdown("""
         div[data-testid="stSidebarNavItems"] {display: none;}
         div[data-testid="stToolbar"] {display: none;}
 
-        /* Only keep warning styling */
+        /* Dark mode overrides */
+        .stApp {
+            background-color: rgb(14, 17, 23);
+            color: rgb(237, 242, 247);
+        }
+
+        /* Warning styling */
         .impersonation-warning {
             background-color: #ff4444;
             color: white;
@@ -34,6 +41,33 @@ st.markdown("""
             padding: 8px;
             margin-bottom: 10px;
             text-align: center;
+        }
+
+        /* Container adjustments */
+        div[data-testid="stVerticalBlock"] > div {
+            padding: 0.5rem 0;
+        }
+
+        /* Card styling */
+        .player-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+            padding: 1rem;
+            margin: 0.5rem 0;
+        }
+
+        .player-card:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .player-stats {
+            font-size: 0.9em;
+            color: #888;
+            margin-top: 0.25rem;
+        }
+
+        .stat-highlight {
+            color: #00ff00;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -64,8 +98,8 @@ def main():
         initialize_session_state()
         session_manager = SessionManager()
         create_initial_admin()
-    except Exception:
-        handle_streamlit_error()
+    except Exception as e:
+        st.error("Der opstod en fejl. Prøv venligst igen.")
         st.stop()
 
     # Get current user ID safely
@@ -106,31 +140,31 @@ def main():
 
     st.title("Sorø-Freja Spiller Udviklingsværktøj")
 
-    # Show navigation and content based on page state
+    # Show content based on page state
     if st.session_state.page == "Spillere":
         st.header("Spillere")
 
-        # Create two columns with custom widths
-        col1, col2 = st.columns([1, 2])
+        # Create two columns with better spacing
+        col1, col2 = st.columns([1, 2], gap="large")
 
         with col1:
-            with st.form("add_player", clear_on_submit=True):
+            with st.container():
                 st.subheader("Tilføj spiller")
-                player_name = st.text_input("Spiller navn")
-
-                if st.form_submit_button("Tilføj Spiller"):
-                    if player_name:
-                        current_players = dm.get_players(current_user_id)
-                        if not current_players.empty and player_name in current_players['Name'].values:
-                            st.error(f"Spiller '{player_name}' findes allerede")
-                        else:
-                            if dm.add_player(player_name, "Not specified", current_user_id):
-                                st.success(f"Spiller tilføjet: {player_name}")
-                                st.rerun()
-                            else:
+                with st.form("add_player", clear_on_submit=True):
+                    player_name = st.text_input("Spiller navn")
+                    if st.form_submit_button("Tilføj Spiller"):
+                        if player_name:
+                            current_players = dm.get_players(current_user_id)
+                            if not current_players.empty and player_name in current_players['Name'].values:
                                 st.error(f"Spiller '{player_name}' findes allerede")
-                    else:
-                        st.error("Indtast venligst et spillernavn")
+                            else:
+                                if dm.add_player(player_name, "Not specified", current_user_id):
+                                    st.success(f"Spiller tilføjet: {player_name}")
+                                    st.rerun()
+                                else:
+                                    st.error(f"Spiller '{player_name}' findes allerede")
+                        else:
+                            st.error("Indtast venligst et spillernavn")
 
         with col2:
             st.subheader("Aktive Spillere")
@@ -139,16 +173,43 @@ def main():
             if not players_df.empty:
                 for _, player in players_df.iterrows():
                     best_stat, stat_value = get_player_best_stat(player['Name'], current_user_id)
-                    cols = st.columns([3, 1])
-                    with cols[0]:
-                        if best_stat:
-                            st.write(f"**{player['Name']}** - Bedste rolle: {best_stat}")
-                        else:
-                            st.write(f"**{player['Name']}**")
-                    with cols[1]:
-                        if st.button("🗑️", key=f"delete_{player['Name']}", help="Slet spiller"):
-                            if dm.delete_player(player['Name'], current_user_id):
-                                st.success(f"Spiller slettet: {player['Name']}")
+
+                    # Create player card with stats
+                    st.markdown(f"""
+                        <div class="player-card">
+                            <div>
+                                <strong>{player['Name']}</strong>
+                                {f'<div class="player-stats">Bedste rolle: <span class="stat-highlight">{best_stat}</span> (Niveau {stat_value})</div>' if best_stat else ''}
+                            </div>
+                        </div>
+                    """, unsafe_allow_html=True)
+
+                    # Delete button with confirmation
+                    delete_key = f"delete_{player['Name']}"
+                    confirm_key = f"confirm_{player['Name']}"
+
+                    # Only show confirm dialog if delete was clicked
+                    if delete_key not in st.session_state:
+                        st.session_state[delete_key] = False
+
+                    # Show delete button
+                    if not st.session_state[delete_key]:
+                        if st.button("🗑️ Slet", key=delete_key):
+                            st.session_state[delete_key] = True
+                            st.rerun()
+                    else:
+                        # Show confirmation dialog
+                        st.warning(f"Er du sikker på at du vil slette {player['Name']}?")
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            if st.button("Ja, slet", key=f"confirm_{player['Name']}"):
+                                if dm.delete_player(player['Name'], current_user_id):
+                                    st.success(f"Spiller slettet: {player['Name']}")
+                                    st.session_state[delete_key] = False
+                                    st.rerun()
+                        with col2:
+                            if st.button("Nej, behold", key=f"cancel_{player['Name']}"):
+                                st.session_state[delete_key] = False
                                 st.rerun()
             else:
                 st.info("Ingen spillere fundet")
