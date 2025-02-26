@@ -12,7 +12,7 @@ from datetime import datetime
 # Must be the first Streamlit command
 st.set_page_config(
     page_title="Sorø-Freja Spiller Udviklingsværktøj",
-    layout="centered",
+    layout="wide",
     initial_sidebar_state="expanded"
 )
 
@@ -47,6 +47,30 @@ def get_player_best_stat(player_name, user_id):
     best_stat = max(categories, key=lambda x: latest[x])
     return best_stat, latest[best_stat]
 
+def show_navigation_sidebar():
+    """Show sidebar navigation with icons"""
+    with st.sidebar:
+        st.title("Navigation")
+
+        # Menu items with icons
+        menu_items = {
+            "Spillere": "👥",
+            "Kampe": "⚽",
+            "Statistik": "📊",
+            "Indstillinger": "⚙️"
+        }
+
+        selected = None
+        for page, icon in menu_items.items():
+            if st.button(f"{icon} {page}", use_container_width=True, key=f"nav_{page}"):
+                st.session_state.page = page
+                selected = page
+                st.rerun()
+
+        # Show which page is selected
+        if selected:
+            st.markdown(f"**Aktuel side:** {menu_items[selected]} {selected}")
+
 def main():
     try:
         initialize_session_state()
@@ -77,7 +101,8 @@ def main():
         st.write(f"Logget ind som: {st.session_state.user['username']}")
         show_logout_button()
 
-    st.title("Sorø-Freja Spiller Udviklingsværktøj")
+    # Show navigation sidebar
+    show_navigation_sidebar()
 
     if st.session_state.page == "Spillere":
         st.header("Spillere")
