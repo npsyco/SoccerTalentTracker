@@ -123,26 +123,16 @@ def main():
 
                     # Delete button column
                     with cols[1]:
-                        delete_key = f"delete_{player['Name']}"
-
-                        # Initialize session state if not exists
-                        if delete_key not in st.session_state:
-                            st.session_state[delete_key] = False
-
-                        # Show either delete button or confirmation
-                        if not st.session_state[delete_key]:
-                            if st.button("🗑️", key=delete_key, help="Slet spiller"):
-                                st.session_state[delete_key] = True
-                                st.rerun()
-                        else:
+                        delete_clicked = st.button("🗑️", key=f"delete_button_{player['Name']}", help="Slet spiller")
+                        if delete_clicked:
                             st.warning(f"Er du sikker på at du vil slette {player['Name']}?")
-                            if st.button("Ja", key=f"confirm_{player['Name']}"):
+                            confirm = st.button("Ja", key=f"confirm_{player['Name']}")
+                            cancel = st.button("Nej", key=f"cancel_{player['Name']}")
+
+                            if confirm:
                                 if dm.delete_player(player['Name'], current_user_id):
-                                    st.session_state[delete_key] = False
+                                    st.success("Spiller slettet")
                                     st.rerun()
-                            if st.button("Nej", key=f"cancel_{player['Name']}"):
-                                st.session_state[delete_key] = False
-                                st.rerun()
             else:
                 st.info("Ingen spillere fundet")
 
