@@ -7,33 +7,33 @@ class DataManager:
         self.rating_map = {'A': 4, 'B': 3, 'C': 2, 'D': 1}
         self.reverse_rating_map = {4: 'A', 3: 'B', 2: 'C', 1: 'D'}
 
-    def add_player(self, name, position="Not specified", user_id=None):
+    def add_player(self, name, position="Not specified"):
         """Add a new player to the system"""
-        return self.db.add_player(name, position, user_id)
+        return self.db.add_player(name, position)
 
-    def delete_player(self, name, user_id=None):
+    def delete_player(self, name):
         """Delete a player from the system"""
-        return self.db.delete_player(name, user_id)
+        return self.db.delete_player(name)
 
-    def get_players(self, user_id=None):
+    def get_players(self):
         """Get list of all players"""
-        return self.db.get_players(user_id)
+        return self.db.get_players()
 
-    def add_match_record(self, date, time, opponent, players_df, ratings, user_id=None):
+    def add_match_record(self, date, time, opponent, players_df, ratings):
         """Add match performance records for selected players"""
-        return self.db.add_match_record(date, time, opponent, players_df, ratings, user_id)
+        return self.db.add_match_record(date, time, opponent, players_df, ratings)
 
-    def get_player_performance(self, player_name, start_date=None, end_date=None, user_id=None):
+    def get_player_performance(self, player_name, start_date=None, end_date=None):
         """Get performance history for a specific player within date range"""
-        return self.db.get_player_performance(player_name, start_date, end_date, user_id)
+        return self.db.get_player_performance(player_name, start_date, end_date)
 
-    def get_team_performance(self, start_date=None, end_date=None, user_id=None):
+    def get_team_performance(self, start_date=None, end_date=None):
         """Get team's overall performance history within date range"""
-        return self.db.get_team_performance(start_date, end_date, user_id)
+        return self.db.get_team_performance(start_date, end_date)
 
-    def get_available_seasons(self, user_id=None):
+    def get_available_seasons(self):
         """Get list of available seasons (years) from match data"""
-        return self.db.get_available_seasons(user_id)
+        return self.db.get_available_seasons()
 
     def generate_test_data(self, username):
         """Generate test data for a specific user"""
