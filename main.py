@@ -16,59 +16,15 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Hide navigation and apply dark theme
+# Hide navigation 
 st.markdown("""
     <style>
-        /* Core navigation hiding */
         #MainMenu {visibility: hidden;}
         header {visibility: hidden;}
         footer {visibility: hidden;}
         section[data-testid="stSidebarNav"] {display: none;}
         div[data-testid="stSidebarNavItems"] {display: none;}
         div[data-testid="stToolbar"] {display: none;}
-
-        /* Dark mode overrides */
-        .stApp {
-            background-color: rgb(14, 17, 23);
-            color: rgb(237, 242, 247);
-        }
-
-        /* Warning styling */
-        .impersonation-warning {
-            background-color: #ff4444;
-            color: white;
-            border-radius: 4px;
-            padding: 8px;
-            margin-bottom: 10px;
-            text-align: center;
-        }
-
-        /* Container adjustments */
-        div[data-testid="stVerticalBlock"] > div {
-            padding: 0.5rem 0;
-        }
-
-        /* Card styling */
-        .player-card {
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 4px;
-            padding: 1rem;
-            margin: 0.5rem 0;
-        }
-
-        .player-card:hover {
-            background: rgba(255, 255, 255, 0.1);
-        }
-
-        .player-stats {
-            font-size: 0.9em;
-            color: #888;
-            margin-top: 0.25rem;
-        }
-
-        .stat-highlight {
-            color: #00ff00;
-        }
     </style>
 """, unsafe_allow_html=True)
 
@@ -120,27 +76,13 @@ def main():
         if ("impersonated_user" in st.session_state and 
             st.session_state.user['role'] == 'admin' and 
             st.session_state.user['username'] != st.session_state.impersonated_user):
-            st.markdown(
-                f"""
-                <div class="impersonation-warning">
-                    ⚠️ Administrerer bruger: {st.session_state.impersonated_user}
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
-        st.markdown(
-            f"""
-            <div style="text-align: right;">
-                <span style="margin-right: 10px;">Logget ind som: {st.session_state.user['username']}</span>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
+            st.warning(f"⚠️ Administrerer bruger: {st.session_state.impersonated_user}")
+
+        st.write(f"Logget ind som: {st.session_state.user['username']}")
         show_logout_button()
 
     st.title("Sorø-Freja Spiller Udviklingsværktøj")
 
-    # Show content based on page state
     if st.session_state.page == "Spillere":
         st.header("Spillere")
 
@@ -174,43 +116,23 @@ def main():
                 for _, player in players_df.iterrows():
                     best_stat, stat_value = get_player_best_stat(player['Name'], current_user_id)
 
-                    # Create player card with stats
-                    st.markdown(f"""
-                        <div class="player-card">
-                            <div>
-                                <strong>{player['Name']}</strong>
-                                {f'<div class="player-stats">Bedste rolle: <span class="stat-highlight">{best_stat}</span> (Niveau {stat_value})</div>' if best_stat else ''}
-                            </div>
-                        </div>
-                    """, unsafe_allow_html=True)
+                    # Create container for each player
+                    with st.container():
+                        cols = st.columns([3, 1])
 
-                    # Delete button with confirmation
-                    delete_key = f"delete_{player['Name']}"
-                    confirm_key = f"confirm_{player['Name']}"
+                        with cols[0]:
+                            st.write(f"**{player['Name']}**")
+                            if best_stat:
+                                st.caption(f"Bedste rolle: {best_stat} (Niveau {stat_value})")
 
-                    # Only show confirm dialog if delete was clicked
-                    if delete_key not in st.session_state:
-                        st.session_state[delete_key] = False
-
-                    # Show delete button
-                    if not st.session_state[delete_key]:
-                        if st.button("🗑️ Slet", key=delete_key):
-                            st.session_state[delete_key] = True
-                            st.rerun()
-                    else:
-                        # Show confirmation dialog
-                        st.warning(f"Er du sikker på at du vil slette {player['Name']}?")
-                        col1, col2 = st.columns(2)
-                        with col1:
-                            if st.button("Ja, slet", key=f"confirm_{player['Name']}"):
-                                if dm.delete_player(player['Name'], current_user_id):
-                                    st.success(f"Spiller slettet: {player['Name']}")
-                                    st.session_state[delete_key] = False
-                                    st.rerun()
-                        with col2:
-                            if st.button("Nej, behold", key=f"cancel_{player['Name']}"):
-                                st.session_state[delete_key] = False
-                                st.rerun()
+                        with cols[1]:
+                            # Create delete button and confirmation in the same container
+                            if st.button("🗑️", help="Slet spiller", key=f"delete_button_{player['Name']}"):
+                                st.warning(f"Er du sikker på at du vil slette {player['Name']}?")
+                                if st.button("Ja, slet", key=f"confirm_delete_{player['Name']}"):
+                                    if dm.delete_player(player['Name'], current_user_id):
+                                        st.success(f"Spiller slettet: {player['Name']}")
+                                        st.rerun()
             else:
                 st.info("Ingen spillere fundet")
 
