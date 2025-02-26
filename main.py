@@ -56,7 +56,7 @@ st.markdown("""
             --border-color: #333333;
         }
 
-        /* Override Streamlit's default theme with dark mode */
+        /* Force dark theme */
         .stApp {
             background-color: var(--background-dark);
             color: var(--text-color);
@@ -72,7 +72,6 @@ st.markdown("""
             display: flex;
             justify-content: space-between;
             align-items: center;
-            transition: all 0.1s ease-in-out;
         }
 
         .player-card:hover {
@@ -102,27 +101,23 @@ st.markdown("""
             font-weight: bold;
         }
 
-        .delete-button {
-            color: #ff4444;
-            background: none;
-            border: none;
-            cursor: pointer;
-            padding: 8px;
-            font-size: 16px;
-            transition: all 0.1s ease-in-out;
-            border-radius: 4px;
-        }
-
-        .delete-button:hover {
-            background: rgba(255, 68, 68, 0.1);
-        }
-
         /* Form Styling */
         .stTextInput > div > div > input {
             border-radius: 4px !important;
             border-color: var(--border-color) !important;
             background: var(--background-dark) !important;
             color: var(--text-color) !important;
+        }
+
+        /* Admin impersonation warning */
+        .impersonation-warning {
+            background-color: #420000;
+            border: 1px solid #ff4444;
+            border-radius: 4px;
+            padding: 8px;
+            margin-bottom: 10px;
+            color: #ff4444;
+            text-align: center;
         }
 
         /* Performance optimizations */
@@ -141,16 +136,19 @@ st.markdown("""
         * {
             transition-duration: 0.1s !important;
         }
-
-        /* Admin impersonation warning */
-        .impersonation-warning {
-            background-color: #420000;
-            border: 1px solid #ff4444;
-            border-radius: 4px;
-            padding: 8px;
-            margin-bottom: 10px;
+        .delete-button {
             color: #ff4444;
-            text-align: center;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 8px;
+            font-size: 16px;
+            transition: all 0.1s ease-in-out;
+            border-radius: 4px;
+        }
+
+        .delete-button:hover {
+            background: rgba(255, 68, 68, 0.1);
         }
     </style>
 """, unsafe_allow_html=True)
@@ -186,20 +184,12 @@ def main():
         handle_streamlit_error()
         st.stop()
 
+    # Get current user ID safely
+    current_user_id = get_current_user_id()
+
     # Show login page if user is not logged in
     if not session_manager.get_current_user():
         show_login_page()
-        return
-
-    # Initialize data manager and visualizer
-    dm = DataManager()
-    viz = Visualizer()
-
-    # Get current user ID safely
-    current_user_id = get_current_user_id()
-    if not current_user_id:
-        st.error("Bruger ID ikke fundet. Log venligst ud og ind igen.")
-        show_logout_button()
         return
 
     # Create top navigation bar with account info
@@ -231,38 +221,7 @@ def main():
     st.title("Sorø-Freja Spiller Udviklingsværktøj")
 
     # Show navigation and content
-    with st.sidebar:
-        # For admin users, show admin panel option
-        if st.session_state.user['role'] == 'admin':
-            if st.button("🔧 Administration", use_container_width=True):
-                st.session_state.page = "Admin"
-                st.rerun()
-
-        st.markdown("---")
-
-        # Simplified navigation - buttons with equal width
-        if st.button("👥 Spillere", key="nav_players", use_container_width=True):
-            st.session_state.page = "Spillere"
-            st.rerun()
-        if st.button("📊 Kampdata", key="nav_matches", use_container_width=True):
-            st.session_state.page = "Kampdata"
-            st.rerun()
-        if st.button("📈 Udviklingsanalyse", key="nav_analysis", use_container_width=True):
-            st.session_state.page = "Udviklingsanalyse"
-            st.rerun()
-
-    # Initialize page state if not set
-    if 'page' not in st.session_state:
-        st.session_state.page = "Spillere"
-
-    # Show selected page content
-    if st.session_state.page == "Admin" and st.session_state.user['role'] == 'admin':
-        show_user_management()
-    elif st.session_state.page == "Spillere":
-        # Require coach or admin role
-        if not session_manager.require_role(['admin', 'coach']):
-            return
-
+    if st.session_state.page == "Spillere":
         st.header("Spillere")
 
         # Create two columns with custom widths
@@ -292,30 +251,30 @@ def main():
             players_df = dm.get_players(current_user_id)
 
             if not players_df.empty:
-                # Display players as cards
                 for _, player in players_df.iterrows():
                     best_stat, stat_value = get_player_best_stat(player['Name'], current_user_id)
 
                     # Create a container for each player card
                     with st.container():
-                        col1, col2, col3 = st.columns([3, 2, 1])
-
-                        with col1:
-                            st.markdown(f"""
-                                <div class="player-card">
-                                    <div class="player-info">
-                                        <span class="player-name">{player['Name']}</span>
-                                        {f'<span class="player-stats">Bedste rolle: <span class="stat-highlight">{best_stat}</span></span>' if best_stat else ''}
-                                    </div>
-                                    
+                        st.markdown(f"""
+                            <div class="player-card">
+                                <div class="player-info">
+                                    <span class="player-name">{player['Name']}</span>
+                                    {f'<span class="player-stats">Bedste rolle: <span class="stat-highlight">{best_stat}</span></span>' if best_stat else ''}
                                 </div>
-                            """, unsafe_allow_html=True)
+                                <button 
+                                    class="delete-button" 
+                                    onclick="document.querySelector('[key=\'delete_{player['Name']}\']').click()">
+                                    🗑️
+                                </button>
+                            </div>
+                        """, unsafe_allow_html=True)
 
-                        with col3:
-                            if st.button(f"Slet {player['Name']}", key=f"delete_{player['Name']}", type="secondary"):
-                                if dm.delete_player(player['Name'], current_user_id):
-                                    st.success(f"Spiller slettet: {player['Name']}")
-                                    st.rerun()
+                        # Hidden delete button triggered by the card button
+                        if st.button("Slet", key=f"delete_{player['Name']}", type="secondary"):
+                            if dm.delete_player(player['Name'], current_user_id):
+                                st.success(f"Spiller slettet: {player['Name']}")
+                                st.rerun()
             else:
                 st.info("Ingen spillere fundet")
 
