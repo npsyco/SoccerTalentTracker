@@ -249,19 +249,29 @@ def show_user_management():
                     else:
                         st.error("Kunne ikke finde brugerdata")
 
-            # Show current impersonation status and clear button
-            if "impersonated_user" in st.session_state:
-                st.write(f"Du administrerer: **{st.session_state.impersonated_user}**")
-                if st.button("Afslut administration"):
-                    if "impersonated_user" in st.session_state:
-                        del st.session_state.impersonated_user
-                    if "impersonated_user_id" in st.session_state:
-                        del st.session_state.impersonated_user_id
-                    st.rerun()
+            with col2:
+                if st.button("Generer testdata"):
+                    if selected_user_data and "id" in selected_user_data:
+                        from data_manager import DataManager
+                        dm = DataManager()
+                        dm.generate_test_data(selected_user_data["id"])
+                        st.success(f"Testdata genereret for {selected_user}")
+                        st.rerun()
+                    else:
+                        st.error("Kunne ikke finde brugerdata")
 
         else:
             st.info("Ingen brugere at administrere")
 
+        # Show current impersonation status and clear button
+        if "impersonated_user" in st.session_state:
+            st.write(f"Du administrerer: **{st.session_state.impersonated_user}**")
+            if st.button("Afslut administration"):
+                if "impersonated_user" in st.session_state:
+                    del st.session_state.impersonated_user
+                if "impersonated_user_id" in st.session_state:
+                    del st.session_state.impersonated_user_id
+                st.rerun()
 
 def get_all_users(auth_db: AuthDB) -> List[Dict]:
     """Get all users with their roles"""

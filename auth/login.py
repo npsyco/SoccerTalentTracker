@@ -4,10 +4,19 @@ from auth.database import AuthDB
 
 def show_login_page():
     """Show login page with registration option"""
-    # Only style the logout button
+    # Hide sidebar and set minimal layout
     st.markdown(
         """
         <style>
+            [data-testid="stSidebar"][aria-expanded="true"]{
+                display: none;
+            }
+            [data-testid="stSidebar"][aria-expanded="false"]{
+                display: none;
+            }
+            div[data-testid="stToolbar"] {
+                display: none;
+            }
             button[kind="secondary"] {
                 float: right;
                 margin-right: 10px;
