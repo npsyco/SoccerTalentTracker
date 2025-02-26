@@ -31,7 +31,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Hide all navigation elements and set core layout
+# Hide all navigation elements
 st.markdown("""
     <style>
         /* Hide main menu and navigation */
@@ -47,88 +47,21 @@ st.markdown("""
         /* Hide toolbar */
         div[data-testid="stToolbar"] {display: none;}
 
-        /* Custom styling to match deployed version */
-        .stApp {
-            background-color: #f8f9fa;
-        }
-
-        .stButton button {
-            border-radius: 4px;
-            padding: 0.5rem 1rem;
-            background-color: #007bff;
-            color: white;
-            border: none;
-            transition: background-color 0.3s;
-        }
-
-        .stButton button:hover {
-            background-color: #0056b3;
-        }
-
+        /* Adjust account info styling */
         .stButton button[kind="secondary"] {
-            background-color: #6c757d;
             float: right;
             margin-right: 10px;
         }
 
-        .stButton button[kind="secondary"]:hover {
-            background-color: #545b62;
-        }
-
-        /* Form styling */
-        .stTextInput input {
-            border-radius: 4px;
-            border: 1px solid #ced4da;
-            padding: 0.5rem;
-        }
-
-        /* Dataframe styling */
-        .dataframe {
-            border: 1px solid #dee2e6;
-            border-radius: 4px;
-        }
-
-        /* Impersonation warning */
+        /* Admin impersonation warning */
         .impersonation-warning {
-            background-color: #fff3cd;
-            border: 1px solid #ffeeba;
+            background-color: #ffebee;
+            border: 1px solid #ef5350;
             border-radius: 4px;
             padding: 8px;
             margin-bottom: 10px;
-            color: #856404;
+            color: #c62828;
             text-align: center;
-        }
-
-        /* Section headers */
-        h1, h2, h3 {
-            color: #212529;
-            margin-bottom: 1rem;
-        }
-
-        /* Tab styling */
-        .stTabs [data-baseweb="tab-list"] {
-            gap: 2px;
-            background-color: white;
-        }
-
-        .stTabs [data-baseweb="tab"] {
-            padding: 10px 20px;
-            background-color: #f8f9fa;
-        }
-
-        .stTabs [data-baseweb="tab-highlight"] {
-            background-color: #007bff;
-        }
-
-        /* Sidebar styling */
-        [data-testid="stSidebar"] {
-            background-color: white;
-            border-right: 1px solid #dee2e6;
-        }
-
-        [data-testid="stSidebar"] .stButton button {
-            width: 100%;
-            margin-bottom: 0.5rem;
         }
     </style>
 """, unsafe_allow_html=True)
