@@ -16,14 +16,14 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Hide only specific navigation elements
+# Hide only toolbar
 st.markdown("""
     <style>
-        header {visibility: hidden;}
-        footer {visibility: hidden;}
-        section[data-testid="stSidebarNav"] {display: none;}
-        div[data-testid="stSidebarNavItems"] {display: none;}
         div[data-testid="stToolbar"] {display: none;}
+        button[kind="secondary"] {
+            float: right;
+            margin-right: 10px;
+        }
     </style>
 """, unsafe_allow_html=True)
 
@@ -53,6 +53,9 @@ def main():
         initialize_session_state()
         session_manager = SessionManager()
         create_initial_admin()
+
+        # Initialize DataManager before any view logic
+        dm = DataManager()
     except Exception as e:
         st.error("Der opstod en fejl. Prøv venligst igen.")
         st.stop()
@@ -106,8 +109,6 @@ def main():
 
         with col2:
             st.subheader("Aktive Spillere")
-            # Initialize data manager
-            dm = DataManager()
             players_df = dm.get_players(current_user_id)
 
             if not players_df.empty:
@@ -123,7 +124,7 @@ def main():
                         if best_stat:
                             st.caption(f"Bedste rolle: {best_stat} (Niveau {stat_value})")
 
-                    # Delete button column with confirmation
+                    # Delete button column
                     with cols[1]:
                         delete_key = f"delete_{player['Name']}"
 
@@ -137,15 +138,13 @@ def main():
                                 st.session_state[delete_key] = True
                                 st.rerun()
                         else:
-                            # More compact confirmation UI
-                            st.caption("Slet? ✓/❌")
-                            if st.button("✓", key=f"confirm_{player['Name']}", help="Ja, slet"):
-                                dm = DataManager()  # Create new instance to ensure fresh connection
+                            st.warning(f"Er du sikker på at du vil slette {player['Name']}?")
+                            if st.button("Ja", key=f"confirm_{player['Name']}"):
                                 if dm.delete_player(player['Name'], current_user_id):
                                     st.success("Spiller slettet")
                                     st.session_state[delete_key] = False
                                     st.rerun()
-                            if st.button("❌", key=f"cancel_{player['Name']}", help="Nej, behold"):
+                            if st.button("Nej", key=f"cancel_{player['Name']}"):
                                 st.session_state[delete_key] = False
                                 st.rerun()
             else:
