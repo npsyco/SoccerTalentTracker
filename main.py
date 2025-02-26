@@ -47,10 +47,86 @@ st.markdown("""
         /* Hide toolbar */
         div[data-testid="stToolbar"] {display: none;}
 
-        /* Adjust account info styling */
-        .stButton button[kind="secondary"] {
-            float: right;
-            margin-right: 10px;
+        /* Sorø-Freja Theme Colors */
+        :root {
+            --primary-color: #003087;
+            --secondary-color: #0046c7;
+            --text-color: #333333;
+            --background-light: #f5f7fa;
+            --border-color: #e1e4e8;
+        }
+
+        /* Base styles */
+        .stButton > button {
+            background-color: var(--primary-color) !important;
+            color: white !important;
+            border: none !important;
+            border-radius: 4px !important;
+            transition: all 0.1s ease-in-out !important;
+        }
+
+        .stButton > button:hover {
+            background-color: var(--secondary-color) !important;
+        }
+
+        /* Player Card Styles */
+        .player-card {
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 16px;
+            margin: 8px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.1s ease-in-out;
+        }
+
+        .player-card:hover {
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .player-name {
+            font-size: 16px;
+            color: var(--text-color);
+            margin: 0;
+        }
+
+        .delete-button {
+            color: #dc3545;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 4px 8px;
+            font-size: 14px;
+            transition: all 0.1s ease-in-out;
+        }
+
+        .delete-button:hover {
+            color: #bd2130;
+        }
+
+        /* Form Styling */
+        .stTextInput > div > div > input {
+            border-radius: 4px !important;
+            border-color: var(--border-color) !important;
+        }
+
+        /* Existing optimizations remain unchanged */
+        div.stButton > button:first-child {
+            transition: all 0.1s ease-in-out !important;
+        }
+
+        .element-container {
+            transition: height 0.1s ease-in-out !important;
+        }
+
+        .stSpinner > div {
+            animation-duration: 0.5s !important;
+        }
+
+        * {
+            transition-duration: 0.1s !important;
         }
 
         /* Admin impersonation warning */
@@ -62,32 +138,6 @@ st.markdown("""
             margin-bottom: 10px;
             color: #c62828;
             text-align: center;
-        }
-
-        /* Performance optimizations */
-        /* Reduce animation duration */
-        div.stButton > button:first-child {
-            transition: all 0.1s ease-in-out !important;
-        }
-
-        /* Optimize reflow animations */
-        .element-container {
-            transition: height 0.1s ease-in-out !important;
-        }
-
-        /* Reduce spinner animation duration */
-        .stSpinner > div {
-            animation-duration: 0.5s !important;
-        }
-
-        /* Optimize dataframe rendering */
-        .dataframe {
-            transition: none !important;
-        }
-
-        /* Reduce transition times for all elements */
-        * {
-            transition-duration: 0.1s !important;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -189,16 +239,16 @@ def main():
 
         st.header("Spillere")
 
+        # Create two columns with custom widths
         col1, col2 = st.columns([1, 2])
 
         with col1:
-            with st.form("add_player"):
+            with st.form("add_player", clear_on_submit=True):
                 st.subheader("Tilføj spiller")
                 player_name = st.text_input("Spiller navn")
 
                 if st.form_submit_button("Tilføj Spiller"):
                     if player_name:
-                        # Get current players to check for duplicates
                         current_players = dm.get_players(current_user_id)
                         if not current_players.empty and player_name in current_players['Name'].values:
                             st.error(f"Spiller '{player_name}' findes allerede")
@@ -216,44 +266,31 @@ def main():
             players_df = dm.get_players(current_user_id)
 
             if not players_df.empty:
-                st.dataframe(players_df[['Name']])
-                player_to_delete = st.selectbox(
-                    "Vælg spiller fra listen der skal slettes", 
-                    players_df['Name'].tolist()
-                )
+                # Display players as cards
+                for _, player in players_df.iterrows():
+                    # Create a container for each player card
+                    with st.container():
+                        st.markdown(f"""
+                            <div class="player-card">
+                                <span class="player-name">{player['Name']}</span>
+                                <button class="delete-button" onclick="handle_delete('{player['Name']}')">
+                                    🗑️ Slet
+                                </button>
+                            </div>
+                        """, unsafe_allow_html=True)
 
-                # Initialize deletion state if not present
-                if 'delete_confirmation' not in st.session_state:
-                    st.session_state.delete_confirmation = False
-                    st.session_state.player_to_delete = None
-
-                # Show initial delete button if not in confirmation mode
-                if not st.session_state.delete_confirmation:
-                    if st.button("Slet Spiller"):
-                        st.session_state.delete_confirmation = True
-                        st.session_state.player_to_delete = player_to_delete
-                        st.rerun()
-
-                # Show confirmation dialog if in confirmation mode
-                if st.session_state.delete_confirmation:
-                    st.warning(f"Er du sikker på at du vil slette spilleren '{st.session_state.player_to_delete}'? Dette vil også slette alle spillerens kampdata.")
-
-                    col1, col2 = st.columns(2)
-                    with col1:
-                        if st.button("Ja, slet spiller"):
-                            # Pass current_user_id when deleting player
-                            if dm.delete_player(st.session_state.player_to_delete, current_user_id):
-                                st.success(f"Spiller slettet: {st.session_state.player_to_delete}")
-                                # Reset deletion state
-                                st.session_state.delete_confirmation = False
-                                st.session_state.player_to_delete = None
-                                st.rerun()
-                    with col2:
-                        if st.button("Nej, behold spiller"):
-                            # Reset deletion state
-                            st.session_state.delete_confirmation = False
-                            st.session_state.player_to_delete = None
-                            st.rerun()
+                        # Hidden delete confirmation
+                        if st.button(f"Slet {player['Name']}", key=f"delete_{player['Name']}", type="secondary"):
+                            st.warning(f"Er du sikker på at du vil slette spilleren '{player['Name']}'?")
+                            col1, col2 = st.columns(2)
+                            with col1:
+                                if st.button("Ja, slet spiller", key=f"confirm_{player['Name']}"):
+                                    if dm.delete_player(player['Name'], current_user_id):
+                                        st.success(f"Spiller slettet: {player['Name']}")
+                                        st.rerun()
+                            with col2:
+                                if st.button("Nej, behold spiller", key=f"cancel_{player['Name']}"):
+                                    st.rerun()
             else:
                 st.info("Ingen spillere fundet")
 
