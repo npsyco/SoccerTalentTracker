@@ -13,18 +13,12 @@ serverAddress = "0.0.0.0"
 serverPort = 5000
 
 [theme]
-base = "light"
+base = "dark"
+primaryColor = "#0046c7"
 
 [runner]
 fastReruns = true
 magicEnabled = false
-installTracker = false
-clearMemoCache = false
-
-[client]
-toolbarMode = "minimal"
-showErrorDetails = false
-caching = true
 
 [logger]
 level = "error"

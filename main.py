@@ -16,7 +16,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Hide navigation 
+# Hide navigation elements
 st.markdown("""
     <style>
         #MainMenu {visibility: hidden;}
@@ -66,9 +66,6 @@ def main():
         show_login_page()
         return
 
-    # Initialize data manager
-    dm = DataManager()
-
     # Create top navigation bar with account info
     _, _, account_col = st.columns([1, 2, 1])
     with account_col:
@@ -110,29 +107,35 @@ def main():
 
         with col2:
             st.subheader("Aktive Spillere")
+            # Initialize data manager
+            dm = DataManager()
             players_df = dm.get_players(current_user_id)
 
             if not players_df.empty:
                 for _, player in players_df.iterrows():
                     best_stat, stat_value = get_player_best_stat(player['Name'], current_user_id)
 
-                    # Create container for each player
-                    with st.container():
-                        cols = st.columns([3, 1])
+                    # Container for player info and delete button
+                    cols = st.columns([4, 1])
 
-                        with cols[0]:
-                            st.write(f"**{player['Name']}**")
-                            if best_stat:
-                                st.caption(f"Bedste rolle: {best_stat} (Niveau {stat_value})")
+                    # Player info column
+                    with cols[0]:
+                        st.write(f"**{player['Name']}**")
+                        if best_stat:
+                            st.caption(f"Bedste rolle: {best_stat} (Niveau {stat_value})")
 
-                        with cols[1]:
-                            # Create delete button and confirmation in the same container
-                            if st.button("🗑️", help="Slet spiller", key=f"delete_button_{player['Name']}"):
-                                st.warning(f"Er du sikker på at du vil slette {player['Name']}?")
-                                if st.button("Ja, slet", key=f"confirm_delete_{player['Name']}"):
-                                    if dm.delete_player(player['Name'], current_user_id):
-                                        st.success(f"Spiller slettet: {player['Name']}")
-                                        st.rerun()
+                    # Delete button column
+                    with cols[1]:
+                        delete_col1, delete_col2 = st.columns([1, 1])
+                        with delete_col2:
+                            if st.button("🗑️", key=f"delete_{player['Name']}", help="Slet spiller"):
+                                with delete_col1:
+                                    st.warning("Slet?")
+                                    if st.button("✓", key=f"confirm_{player['Name']}"):
+                                        if dm.delete_player(player['Name'], current_user_id):
+                                            st.success(f"Spiller slettet")
+                                            st.rerun()
+                    st.markdown("---")
             else:
                 st.info("Ingen spillere fundet")
 
