@@ -15,9 +15,10 @@ class SessionManager:
                 "sub": user["username"],
                 "role": user["role_name"]
             })
-            
-            # Store in session state
+
+            # Store in session state, including user ID
             st.session_state.user = {
+                "id": user["id"],
                 "username": user["username"],
                 "role": user["role_name"],
                 "token": token

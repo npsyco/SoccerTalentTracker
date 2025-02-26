@@ -34,18 +34,6 @@ st.set_page_config(
 # Hide all navigation elements and set core layout
 st.markdown("""
     <style>
-        /* Set dark theme colors */
-        .stApp {
-            background-color: #0e1117;
-            color: #fafafa;
-        }
-
-        /* Style for all containers */
-        .stMarkdown, .stForm, .stSelectbox, .stTextInput {
-            background-color: #262730;
-            color: #fafafa;
-        }
-
         /* Hide main menu and navigation */
         #MainMenu {visibility: hidden;}
         header {visibility: hidden;}
@@ -71,35 +59,28 @@ st.markdown("""
         .stButton button[kind="secondary"] {
             float: right;
             margin-right: 10px;
-            background-color: #262730;
-            color: #fafafa;
         }
 
-        /* Dark theme for sidebar */
-        .css-1d391kg, [data-testid="stSidebar"] {
-            background-color: #0e1117;
-        }
-
-        /* Dark theme for buttons */
-        .stButton>button {
-            background-color: #262730;
-            color: #fafafa;
-            border: 1px solid #4a4a4a;
-        }
-
-        /* Dark theme for input fields */
-        .stTextInput>div>div>input, .stSelectbox>div>div>input {
-            background-color: #262730;
-            color: #fafafa;
-        }
-
-        /* Dark theme for selectbox dropdown */
-        .stSelectbox>div>div>div {
-            background-color: #262730;
-            color: #fafafa;
+        /* Admin impersonation warning */
+        .impersonation-warning {
+            background-color: #ffebee;
+            border: 1px solid #ef5350;
+            border-radius: 4px;
+            padding: 8px;
+            margin-bottom: 10px;
+            color: #c62828;
+            text-align: center;
         }
     </style>
 """, unsafe_allow_html=True)
+
+def get_current_user_id():
+    """Helper function to safely get current user ID"""
+    if "impersonated_user_id" in st.session_state:
+        return st.session_state.impersonated_user_id
+    elif "user" in st.session_state and st.session_state.user and "id" in st.session_state.user:
+        return st.session_state.user["id"]
+    return None
 
 def main():
     # Initialize session state
@@ -111,7 +92,6 @@ def main():
         handle_streamlit_error()
         st.stop()
 
-
     # Show login page if user is not logged in
     if not session_manager.get_current_user():
         show_login_page()
@@ -121,11 +101,20 @@ def main():
     dm = DataManager()
     viz = Visualizer()
 
+    # Get current user ID safely
+    current_user_id = get_current_user_id()
+    if not current_user_id:
+        st.error("Bruger ID ikke fundet. Log venligst ud og ind igen.")
+        show_logout_button()
+        return
+
     # Create top navigation bar with account info
     _, _, account_col = st.columns([1, 2, 1])
     with account_col:
-        # Show impersonation warning if admin is impersonating another user
-        if "impersonated_user" in st.session_state:
+        # Show impersonation warning only when admin is actually impersonating
+        if ("impersonated_user" in st.session_state and 
+            st.session_state.user['role'] == 'admin' and 
+            st.session_state.user['username'] != st.session_state.impersonated_user):
             st.markdown(
                 f"""
                 <div class="impersonation-warning">
@@ -191,20 +180,29 @@ def main():
 
                 if st.form_submit_button("Tilføj Spiller"):
                     if player_name:
-                        # Set a default position as it's hidden for now
-                        dm.add_player(player_name, "Not specified")
-                        st.success(f"Spiller tilføjet: {player_name}")
+                        # Get current players to check for duplicates
+                        current_players = dm.get_players(current_user_id)
+                        if not current_players.empty and player_name in current_players['Name'].values:
+                            st.error(f"Spiller '{player_name}' findes allerede")
+                        else:
+                            if dm.add_player(player_name, "Not specified", current_user_id):
+                                st.success(f"Spiller tilføjet: {player_name}")
+                                st.rerun()
+                            else:
+                                st.error(f"Spiller '{player_name}' findes allerede")
                     else:
                         st.error("Indtast venligst et spillernavn")
 
         with col2:
             st.subheader("Aktive Spillere")
-            players_df = dm.get_players()
-            if not players_df.empty:
-                st.dataframe(players_df[['Name']])  # Only show name column
+            players_df = dm.get_players(current_user_id)
 
-                # Delete player option
-                player_to_delete = st.selectbox("Vælg spiller fra listen der skal slettes", players_df['Name'].tolist())
+            if not players_df.empty:
+                st.dataframe(players_df[['Name']])
+                player_to_delete = st.selectbox(
+                    "Vælg spiller fra listen der skal slettes", 
+                    players_df['Name'].tolist()
+                )
 
                 # Initialize deletion state if not present
                 if 'delete_confirmation' not in st.session_state:
@@ -225,7 +223,8 @@ def main():
                     col1, col2 = st.columns(2)
                     with col1:
                         if st.button("Ja, slet spiller"):
-                            if dm.delete_player(st.session_state.player_to_delete):
+                            # Pass current_user_id when deleting player
+                            if dm.delete_player(st.session_state.player_to_delete, current_user_id):
                                 st.success(f"Spiller slettet: {st.session_state.player_to_delete}")
                                 # Reset deletion state
                                 st.session_state.delete_confirmation = False
@@ -237,6 +236,8 @@ def main():
                             st.session_state.delete_confirmation = False
                             st.session_state.player_to_delete = None
                             st.rerun()
+            else:
+                st.info("Ingen spillere fundet")
 
     elif st.session_state.page == "Kampdata":
         # Require coach or assistant_coach role
@@ -266,7 +267,8 @@ def main():
                 match_time = st.time_input("Tidspunkt")
                 opponent = st.text_input("Modstander (valgfrit)")
 
-                players_df = dm.get_players()
+                # Pass current_user_id when getting players
+                players_df = dm.get_players(current_user_id)
                 if not players_df.empty:
                     st.subheader("Vælg spillere der deltog i kampen")
 
@@ -334,14 +336,16 @@ def main():
                             }
 
                         # Save match record with date and time
-                        players_df = dm.get_players()
+                        #Pass current_user_id when getting players
+                        players_df = dm.get_players(current_user_id)
                         selected_players_df = players_df[players_df['Name'].isin(st.session_state.selected_players)]
                         dm.add_match_record(
                             st.session_state.match_date,
                             st.session_state.match_time,
                             st.session_state.opponent or "Ikke angivet",
                             selected_players_df,
-                            player_ratings
+                            player_ratings,
+                            current_user_id
                         )
 
                         # Reset state and show success message
@@ -370,7 +374,7 @@ def main():
 
         with col2:
             # Get available seasons
-            available_seasons = dm.get_available_seasons()
+            available_seasons = dm.get_available_seasons(current_user_id)
             if available_seasons:
                 selected_season = st.selectbox(
                     "Vælg sæson",
@@ -391,7 +395,8 @@ def main():
                 end_date = None
 
         if analysis_type == "Individuel Spilleranalyse":
-            players_df = dm.get_players()
+            # Pass current_user_id when getting players
+            players_df = dm.get_players(current_user_id)
             if not players_df.empty:
                 player = st.selectbox("Vælg Spiller", players_df['Name'].tolist())
                 category = st.selectbox(
@@ -399,7 +404,8 @@ def main():
                     ["Alle roller", "Boldholder", "Medspiller", "Presspiller", "Støttespiller"]
                 )
 
-                player_data = dm.get_player_performance(player, start_date, end_date)
+                # Pass current_user_id when getting player performance
+                player_data = dm.get_player_performance(player, start_date, end_date, current_user_id)
                 if not player_data.empty:
                     if category == "Alle roller":
                         fig = viz.plot_player_all_categories(player_data, player)
@@ -418,12 +424,8 @@ def main():
                     st.info("Ingen data tilgængelig for denne spiller")
 
         elif analysis_type == "Holdanalyse":
-            category = st.selectbox(
-                "Vælg rolle",
-                ["Alle roller", "Boldholder", "Medspiller", "Presspiller", "Støttespiller"]
-            )
-
-            team_data = dm.get_team_performance(start_date, end_date)
+            # Pass current_user_id when getting team performance
+            team_data = dm.get_team_performance(start_date, end_date, current_user_id)
             if not team_data.empty:
                 if category == "Alle roller":
                     fig = viz.plot_team_all_categories(team_data)
@@ -442,7 +444,8 @@ def main():
                 st.info("Ingen holddata tilgængelig")
 
         else:  # Spillersammenligning
-            players_df = dm.get_players()
+            # Pass current_user_id when getting players for comparison
+            players_df = dm.get_players(current_user_id)
             if not players_df.empty:
                 st.write("### Vælg spillere at sammenligne")
                 st.write("Vælg op til 4 spillere at sammenligne ved at markere afkrydsningsfelterne nedenfor.")
@@ -478,7 +481,8 @@ def main():
                     # Get data for all selected players
                     player_data_dict = {}
                     for player_name in selected_players:
-                        player_data = dm.get_player_performance(player_name, start_date, end_date)
+                        # Pass current_user_id when getting player performance
+                        player_data = dm.get_player_performance(player_name, start_date, end_date, current_user_id)
                         if not player_data.empty:
                             player_data_dict[player_name] = player_data
 

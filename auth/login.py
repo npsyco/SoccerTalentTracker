@@ -8,18 +8,6 @@ def show_login_page():
     st.markdown(
         """
         <style>
-            /* Set dark theme colors */
-            .stApp {
-                background-color: #0e1117;
-                color: #fafafa;
-            }
-
-            /* Style for all containers */
-            .stMarkdown, .stForm, .stSelectbox, .stTextInput {
-                background-color: #262730;
-                color: #fafafa;
-            }
-
             [data-testid="stSidebar"][aria-expanded="true"]{
                 display: none;
             }
@@ -32,22 +20,6 @@ def show_login_page():
             button[kind="secondary"] {
                 float: right;
                 margin-right: 10px;
-                background-color: #262730;
-                color: #fafafa;
-            }
-
-            /* Dark theme for buttons */
-            .stButton>button {
-                background-color: #262730;
-                color: #fafafa;
-                border: 1px solid #4a4a4a;
-            }
-
-            /* Dark theme for input fields */
-            .stTextInput>div>div>input {
-                background-color: #262730;
-                color: #fafafa;
-                border: 1px solid #4a4a4a;
             }
         </style>
         """,

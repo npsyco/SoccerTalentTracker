@@ -32,7 +32,7 @@ class AuthDB:
                     )
                 """)
 
-                # Create users table
+                # Create users table with user_id column
                 cur.execute("""
                     CREATE TABLE IF NOT EXISTS users (
                         id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
@@ -156,8 +156,9 @@ class AuthDB:
         try:
             with psycopg2.connect(self.conn_string) as conn:
                 with conn.cursor(cursor_factory=DictCursor) as cur:
+                    # Get user details including password hash
                     cur.execute("""
-                        SELECT u.*, r.name as role_name
+                        SELECT u.id, u.username, u.password_hash, u.email, r.name as role_name, u.status
                         FROM users u
                         JOIN roles r ON u.role_id = r.id
                         WHERE u.username = %s AND u.status = 'active'
@@ -165,7 +166,10 @@ class AuthDB:
                     user = cur.fetchone()
 
                     if user and pwd_context.verify(password, user['password_hash']):
-                        return dict(user)
+                        # Convert to dict and remove password hash before returning
+                        user_dict = dict(user)
+                        del user_dict['password_hash']
+                        return user_dict
                     return None
 
         except psycopg2.Error:

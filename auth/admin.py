@@ -23,38 +23,48 @@ def create_initial_admin():
                 admin_email = os.environ.get('ADMIN_EMAIL')
 
                 if not all([admin_username, admin_password, admin_email]):
-                    st.error("Admin credentials not found in environment variables")
                     return
 
                 # Get admin role ID
                 cur.execute("SELECT id FROM roles WHERE name = 'admin'")
-                admin_role_id = cur.fetchone()[0]
-
-                # Check if admin user exists
-                cur.execute("SELECT id FROM users WHERE role_id = %s", (admin_role_id,))
-                admin_exists = cur.fetchone()
+                admin_role = cur.fetchone()
+                if not admin_role:
+                    return
+                admin_role_id = admin_role[0]
 
                 # Create password hash
                 password_hash = pwd_context.hash(admin_password)
+
+                # Check if admin user exists
+                cur.execute("""
+                    SELECT u.id FROM users u
+                    JOIN roles r ON u.role_id = r.id
+                    WHERE r.name = 'admin'
+                """)
+                admin_exists = cur.fetchone()
 
                 if admin_exists:
                     # Update existing admin
                     cur.execute("""
                         UPDATE users 
-                        SET username = %s, password_hash = %s, email = %s, status = 'active'
+                        SET username = %s, 
+                            password_hash = %s, 
+                            email = %s, 
+                            status = 'active'
                         WHERE id = %s
                     """, (admin_username, password_hash, admin_email, admin_exists[0]))
                 else:
                     # Create new admin user
                     cur.execute("""
-                        INSERT INTO users (username, password_hash, email, role_id, status)
+                        INSERT INTO users 
+                        (username, password_hash, email, role_id, status)
                         VALUES (%s, %s, %s, %s, 'active')
                     """, (admin_username, password_hash, admin_email, admin_role_id))
 
                 conn.commit()
 
     except Exception as e:
-        st.error(f"Error setting up admin user: {str(e)}")
+        print(f"Error setting up admin user: {str(e)}")
 
 def show_user_management():
     """Show user management interface for admins"""
@@ -212,38 +222,55 @@ def show_user_management():
         st.subheader("Brugeradgang")
         st.write("Vælg en bruger for at se og administrere deres data:")
 
+        users = get_all_users(auth_db)
         non_admin_users = [user for user in users if user["role_name"] != "admin"]
+
         if non_admin_users:
             selected_user = st.selectbox(
                 "Vælg bruger at administrere",
                 options=[user["username"] for user in non_admin_users]
             )
 
+            # Get the selected user's data
+            selected_user_data = next(
+                (user for user in non_admin_users if user["username"] == selected_user),
+                None
+            )
+
             col1, col2 = st.columns(2)
             with col1:
                 if st.button("Skift til bruger"):
-                    # Store the impersonated user in session state
-                    st.session_state.impersonated_user = selected_user
-                    st.success(f"Du administrerer nu {selected_user}'s data")
-                    st.rerun()
+                    if selected_user_data and "id" in selected_user_data:
+                        # Store both username and ID for impersonation
+                        st.session_state.impersonated_user = selected_user
+                        st.session_state.impersonated_user_id = selected_user_data["id"]
+                        st.success(f"Du administrerer nu {selected_user}'s data")
+                        st.rerun()
+                    else:
+                        st.error("Kunne ikke finde brugerdata")
 
             with col2:
                 if st.button("Generer testdata"):
-                    from data_manager import DataManager
-                    dm = DataManager()
-                    dm.reset_data()  # Clear existing data
-                    dm.generate_test_data(selected_user)  # Generate new test data
-                    st.success(f"Testdata genereret for {selected_user}")
-                    st.rerun()
+                    if selected_user_data and "id" in selected_user_data:
+                        from data_manager import DataManager
+                        dm = DataManager()
+                        dm.generate_test_data(selected_user_data["id"])
+                        st.success(f"Testdata genereret for {selected_user}")
+                        st.rerun()
+                    else:
+                        st.error("Kunne ikke finde brugerdata")
 
         else:
             st.info("Ingen brugere at administrere")
 
-        # Show current impersonation status
+        # Show current impersonation status and clear button
         if "impersonated_user" in st.session_state:
             st.write(f"Du administrerer: **{st.session_state.impersonated_user}**")
             if st.button("Afslut administration"):
-                del st.session_state.impersonated_user
+                if "impersonated_user" in st.session_state:
+                    del st.session_state.impersonated_user
+                if "impersonated_user_id" in st.session_state:
+                    del st.session_state.impersonated_user_id
                 st.rerun()
 
 def get_all_users(auth_db: AuthDB) -> List[Dict]:
@@ -252,7 +279,7 @@ def get_all_users(auth_db: AuthDB) -> List[Dict]:
         with psycopg2.connect(auth_db.conn_string) as conn:
             with conn.cursor(cursor_factory=DictCursor) as cur:
                 cur.execute("""
-                    SELECT u.username, u.email, u.created_at, r.name as role_name
+                    SELECT u.id, u.username, u.email, u.created_at, r.name as role_name
                     FROM users u
                     JOIN roles r ON u.role_id = r.id
                     WHERE u.status = 'active'
