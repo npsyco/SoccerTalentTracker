@@ -229,12 +229,21 @@ class PostgresDataManager:
             print(f"Error getting team performance: {e}")
             return pd.DataFrame()
 
-    def get_available_seasons(self):
-        """Get list of available seasons (years) from match data"""
+    def get_available_seasons(self, user_id=None):
+        """Get list of available seasons (years) from match data for a specific user"""
         try:
             with psycopg2.connect(self.conn_string) as conn:
                 with conn.cursor() as cur:
-                    cur.execute("SELECT DISTINCT EXTRACT(YEAR FROM date) FROM matches ORDER BY 1")
+                    if user_id:
+                        cur.execute("""
+                            SELECT DISTINCT EXTRACT(YEAR FROM m.date) 
+                            FROM matches m
+                            JOIN players p ON m.player_id = p.id
+                            WHERE p.user_id = %s 
+                            ORDER BY 1
+                        """, (user_id,))
+                    else:
+                        cur.execute("SELECT DISTINCT EXTRACT(YEAR FROM date) FROM matches ORDER BY 1")
                     return [int(year[0]) for year in cur.fetchall()]
         except psycopg2.Error as e:
             print(f"Error getting available seasons: {e}")
