@@ -28,12 +28,25 @@ def handle_streamlit_error():
 st.set_page_config(
     page_title="Sorø-Freja Spiller Udviklingsværktøj",
     layout="centered",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="expanded",
+    theme="dark"  # Set dark theme as default
 )
 
 # Hide all navigation elements and set core layout
 st.markdown("""
     <style>
+        /* Set dark theme colors */
+        .stApp {
+            background-color: #0e1117;
+            color: #fafafa;
+        }
+
+        /* Style for all containers */
+        .stMarkdown, .stForm, .stSelectbox, .stTextInput {
+            background-color: #262730;
+            color: #fafafa;
+        }
+
         /* Hide main menu and navigation */
         #MainMenu {visibility: hidden;}
         header {visibility: hidden;}
@@ -59,6 +72,8 @@ st.markdown("""
         .stButton button[kind="secondary"] {
             float: right;
             margin-right: 10px;
+            background-color: #262730;
+            color: #fafafa;
         }
 
         /* Admin impersonation warning */
@@ -70,6 +85,24 @@ st.markdown("""
             margin-bottom: 10px;
             color: #c62828;
             text-align: center;
+        }
+
+        /* Dark theme for sidebar */
+        .css-1d391kg, [data-testid="stSidebar"] {
+            background-color: #0e1117;
+        }
+
+        /* Dark theme for buttons */
+        .stButton>button {
+            background-color: #262730;
+            color: #fafafa;
+            border: 1px solid #4a4a4a;
+        }
+
+        /* Dark theme for input fields */
+        .stTextInput>div>div>input {
+            background-color: #262730;
+            color: #fafafa;
         }
     </style>
 """, unsafe_allow_html=True)
