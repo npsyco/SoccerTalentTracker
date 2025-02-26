@@ -11,58 +11,41 @@ class PostgresDataManager:
         self.rating_map = {'A': 4, 'B': 3, 'C': 2, 'D': 1}
         self.reverse_rating_map = {4: 'A', 3: 'B', 2: 'C', 1: 'D'}
 
-    def add_player(self, name, position="Not specified", user_id=None):
+    def add_player(self, name, position="Not specified"):
         """Add a new player to the system"""
         try:
             with psycopg2.connect(self.conn_string) as conn:
                 with conn.cursor() as cur:
-                    # First check if player exists for this user
                     cur.execute("""
-                        SELECT COUNT(*) FROM players 
-                        WHERE name = %s AND user_id = %s
-                    """, (name, user_id))
-
-                    if cur.fetchone()[0] > 0:
-                        return False
-
-                    cur.execute("""
-                        INSERT INTO players (name, position, user_id)
-                        VALUES (%s, %s, %s)
+                        INSERT INTO players (name, position)
+                        VALUES (%s, %s)
+                        ON CONFLICT (name) DO NOTHING
                         RETURNING id
-                    """, (name, position, user_id))
+                    """, (name, position))
                     conn.commit()
                     return cur.fetchone() is not None
         except psycopg2.Error as e:
             print(f"Error adding player: {e}")
             return False
 
-    def delete_player(self, name, user_id=None):
+    def delete_player(self, name):
         """Delete a player and their matches"""
         try:
             with psycopg2.connect(self.conn_string) as conn:
                 with conn.cursor() as cur:
-                    # Only delete if the player belongs to the user
-                    cur.execute("""
-                        DELETE FROM players 
-                        WHERE name = %s AND user_id = %s
-                    """, (name, user_id))
+                    # Player's matches will be deleted automatically due to CASCADE
+                    cur.execute("DELETE FROM players WHERE name = %s", (name,))
                     conn.commit()
                     return True
         except psycopg2.Error as e:
             print(f"Error deleting player: {e}")
             return False
 
-    def get_players(self, user_id=None):
-        """Get list of all players for a specific user"""
+    def get_players(self):
+        """Get list of all players"""
         try:
             with psycopg2.connect(self.conn_string) as conn:
-                query = """
-                    SELECT name, position 
-                    FROM players 
-                    WHERE user_id = %s
-                    ORDER BY name
-                """
-                df = pd.read_sql_query(query, conn, params=[user_id])
+                df = pd.read_sql_query("SELECT name, position FROM players ORDER BY name", conn)
                 # Rename columns to match expected format
                 df = df.rename(columns={'name': 'Name', 'position': 'Position'})
                 return df
@@ -103,7 +86,7 @@ class PostgresDataManager:
             print(f"Error adding match record: {e}")
             return False
 
-    def get_player_performance(self, player_name, start_date=None, end_date=None, user_id=None):
+    def get_player_performance(self, player_name, start_date=None, end_date=None):
         """Get performance history for a specific player within date range"""
         query = """
             SELECT 
@@ -117,7 +100,6 @@ class PostgresDataManager:
             FROM matches m
             JOIN players p ON m.player_id = p.id
             WHERE p.name = %s
-            AND p.user_id = %s
             AND m.date IS NOT NULL 
             AND m.date != '1970-01-01'::date
             AND m.boldholder IN ('A', 'B', 'C', 'D')
@@ -126,7 +108,7 @@ class PostgresDataManager:
             AND m.stottespiller IN ('A', 'B', 'C', 'D')
             ORDER BY m.date::date, m.time::time
         """
-        params = [player_name, user_id]
+        params = [player_name]
 
         if start_date:
             query = query.replace("ORDER BY m.date::date, m.time::time", 
@@ -153,8 +135,8 @@ class PostgresDataManager:
             print(f"Error getting player performance: {e}")
             return pd.DataFrame()
 
-    def get_team_performance(self, start_date=None, end_date=None, user_id=None):
-        """Get team's overall performance history within date range for a specific user"""
+    def get_team_performance(self, start_date=None, end_date=None):
+        """Get team's overall performance history within date range"""
         query = """
             WITH valid_matches AS (
                 SELECT 
@@ -164,10 +146,8 @@ class PostgresDataManager:
                     medspiller,
                     presspiller,
                     stottespiller
-                FROM matches m
-                JOIN players p ON m.player_id = p.id
-                WHERE p.user_id = %s
-                AND date IS NOT NULL 
+                FROM matches 
+                WHERE date IS NOT NULL 
                 AND date != '1970-01-01'::date
                 AND boldholder IN ('A', 'B', 'C', 'D')
                 AND medspiller IN ('A', 'B', 'C', 'D')
@@ -210,7 +190,7 @@ class PostgresDataManager:
             HAVING COUNT(*) > 0
             ORDER BY v.date, v.time
         """
-        params = [user_id]
+        params = []
 
         if start_date:
             query = query.replace("ORDER BY v.date, v.time", "AND v.date >= %s ORDER BY v.date, v.time")
@@ -223,27 +203,19 @@ class PostgresDataManager:
             with psycopg2.connect(self.conn_string) as conn:
                 df = pd.read_sql_query(query, conn, params=params)
                 if not df.empty:
+                    # Set MultiIndex with date and time
                     df.set_index(['date', 'time'], inplace=True)
                 return df
         except psycopg2.Error as e:
             print(f"Error getting team performance: {e}")
             return pd.DataFrame()
 
-    def get_available_seasons(self, user_id=None):
-        """Get list of available seasons (years) from match data for a specific user"""
+    def get_available_seasons(self):
+        """Get list of available seasons (years) from match data"""
         try:
             with psycopg2.connect(self.conn_string) as conn:
                 with conn.cursor() as cur:
-                    if user_id:
-                        cur.execute("""
-                            SELECT DISTINCT EXTRACT(YEAR FROM m.date) 
-                            FROM matches m
-                            JOIN players p ON m.player_id = p.id
-                            WHERE p.user_id = %s 
-                            ORDER BY 1
-                        """, (user_id,))
-                    else:
-                        cur.execute("SELECT DISTINCT EXTRACT(YEAR FROM date) FROM matches ORDER BY 1")
+                    cur.execute("SELECT DISTINCT EXTRACT(YEAR FROM date) FROM matches ORDER BY 1")
                     return [int(year[0]) for year in cur.fetchall()]
         except psycopg2.Error as e:
             print(f"Error getting available seasons: {e}")
@@ -254,7 +226,7 @@ class PostgresDataManager:
         # Generate 10 test players
         test_players = [f"Test{i}" for i in range(1, 11)]
         for player in test_players:
-            self.add_player(player, "Not specified", username) #Added user_id
+            self.add_player(player, "Not specified")
 
         # Generate 5 matches
         match_data = [
@@ -271,7 +243,7 @@ class PostgresDataManager:
         roles = ['Boldholder', 'Medspiller', 'Presspiller', 'Støttespiller']
         ratings = ['A', 'B', 'C', 'D']
 
-        players_df = self.get_players(username) #Added user_id
+        players_df = self.get_players()
 
         for match_date, opponent in match_data:
             # Generate random ratings for each player
