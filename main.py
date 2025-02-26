@@ -31,7 +31,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Hide all navigation elements and set core layout
+# Performance optimizations and styling
 st.markdown("""
     <style>
         /* Hide main menu and navigation */
@@ -40,20 +40,12 @@ st.markdown("""
         footer {visibility: hidden;}
 
         /* Hide navigation bar */
-        section[data-testid="stSidebarNav"] {
-            display: none;
-        }
-        div[data-testid="stSidebarNavItems"] {
-            display: none;
-        }
-        .css-1d391kg {
-            display: none;
-        }
+        section[data-testid="stSidebarNav"] {display: none;}
+        div[data-testid="stSidebarNavItems"] {display: none;}
+        .css-1d391kg {display: none;}
 
         /* Hide toolbar */
-        div[data-testid="stToolbar"] {
-            display: none;
-        }
+        div[data-testid="stToolbar"] {display: none;}
 
         /* Adjust account info styling */
         .stButton button[kind="secondary"] {
@@ -70,6 +62,32 @@ st.markdown("""
             margin-bottom: 10px;
             color: #c62828;
             text-align: center;
+        }
+
+        /* Performance optimizations */
+        /* Reduce animation duration */
+        div.stButton > button:first-child {
+            transition: all 0.1s ease-in-out !important;
+        }
+
+        /* Optimize reflow animations */
+        .element-container {
+            transition: height 0.1s ease-in-out !important;
+        }
+
+        /* Reduce spinner animation duration */
+        .stSpinner > div {
+            animation-duration: 0.5s !important;
+        }
+
+        /* Optimize dataframe rendering */
+        .dataframe {
+            transition: none !important;
+        }
+
+        /* Reduce transition times for all elements */
+        * {
+            transition-duration: 0.1s !important;
         }
     </style>
 """, unsafe_allow_html=True)
