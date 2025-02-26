@@ -47,31 +47,24 @@ st.markdown("""
         /* Hide toolbar */
         div[data-testid="stToolbar"] {display: none;}
 
-        /* Sorø-Freja Theme Colors */
+        /* Dark Theme Colors */
         :root {
-            --primary-color: #003087;
-            --secondary-color: #0046c7;
-            --text-color: #333333;
-            --background-light: #f5f7fa;
-            --border-color: #e1e4e8;
+            --primary-color: #0046c7;
+            --secondary-color: #003087;
+            --text-color: #ffffff;
+            --background-dark: #1e1e1e;
+            --border-color: #333333;
         }
 
-        /* Base styles */
-        .stButton > button {
-            background-color: var(--primary-color) !important;
-            color: white !important;
-            border: none !important;
-            border-radius: 4px !important;
-            transition: all 0.1s ease-in-out !important;
-        }
-
-        .stButton > button:hover {
-            background-color: var(--secondary-color) !important;
+        /* Override Streamlit's default theme with dark mode */
+        .stApp {
+            background-color: var(--background-dark);
+            color: var(--text-color);
         }
 
         /* Player Card Styles */
         .player-card {
-            background: white;
+            background: var(--background-dark);
             border: 1px solid var(--border-color);
             border-radius: 8px;
             padding: 16px;
@@ -83,36 +76,56 @@ st.markdown("""
         }
 
         .player-card:hover {
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            border-color: var(--primary-color);
+        }
+
+        .player-info {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
         }
 
         .player-name {
             font-size: 16px;
             color: var(--text-color);
             margin: 0;
+            font-weight: bold;
+        }
+
+        .player-stats {
+            font-size: 12px;
+            color: #888;
+        }
+
+        .stat-highlight {
+            color: #00ff00;
+            font-weight: bold;
         }
 
         .delete-button {
-            color: #dc3545;
+            color: #ff4444;
             background: none;
             border: none;
             cursor: pointer;
-            padding: 4px 8px;
-            font-size: 14px;
+            padding: 8px;
+            font-size: 16px;
             transition: all 0.1s ease-in-out;
+            border-radius: 4px;
         }
 
         .delete-button:hover {
-            color: #bd2130;
+            background: rgba(255, 68, 68, 0.1);
         }
 
         /* Form Styling */
         .stTextInput > div > div > input {
             border-radius: 4px !important;
             border-color: var(--border-color) !important;
+            background: var(--background-dark) !important;
+            color: var(--text-color) !important;
         }
 
-        /* Existing optimizations remain unchanged */
+        /* Performance optimizations */
         div.stButton > button:first-child {
             transition: all 0.1s ease-in-out !important;
         }
@@ -131,12 +144,12 @@ st.markdown("""
 
         /* Admin impersonation warning */
         .impersonation-warning {
-            background-color: #ffebee;
-            border: 1px solid #ef5350;
+            background-color: #420000;
+            border: 1px solid #ff4444;
             border-radius: 4px;
             padding: 8px;
             margin-bottom: 10px;
-            color: #c62828;
+            color: #ff4444;
             text-align: center;
         }
     </style>
@@ -149,6 +162,19 @@ def get_current_user_id():
     elif "user" in st.session_state and st.session_state.user and "id" in st.session_state.user:
         return st.session_state.user["id"]
     return None
+
+def get_player_best_stat(player_name, user_id):
+    """Get the best recent performance stat for a player"""
+    dm = DataManager()
+    performance = dm.get_player_performance(player_name, user_id=user_id)
+    if performance.empty:
+        return None, None
+
+    # Get most recent performance
+    latest = performance.iloc[-1]
+    categories = ['Boldholder', 'Medspiller', 'Presspiller', 'Støttespiller']
+    best_stat = max(categories, key=lambda x: latest[x])
+    return best_stat, latest[best_stat]
 
 def main():
     # Initialize session state
@@ -268,28 +294,27 @@ def main():
             if not players_df.empty:
                 # Display players as cards
                 for _, player in players_df.iterrows():
+                    best_stat, stat_value = get_player_best_stat(player['Name'], current_user_id)
+
                     # Create a container for each player card
                     with st.container():
-                        st.markdown(f"""
-                            <div class="player-card">
-                                <span class="player-name">{player['Name']}</span>
-                                <button class="delete-button" onclick="handle_delete('{player['Name']}')">
-                                    🗑️ Slet
-                                </button>
-                            </div>
-                        """, unsafe_allow_html=True)
+                        col1, col2, col3 = st.columns([3, 2, 1])
 
-                        # Hidden delete confirmation
-                        if st.button(f"Slet {player['Name']}", key=f"delete_{player['Name']}", type="secondary"):
-                            st.warning(f"Er du sikker på at du vil slette spilleren '{player['Name']}'?")
-                            col1, col2 = st.columns(2)
-                            with col1:
-                                if st.button("Ja, slet spiller", key=f"confirm_{player['Name']}"):
-                                    if dm.delete_player(player['Name'], current_user_id):
-                                        st.success(f"Spiller slettet: {player['Name']}")
-                                        st.rerun()
-                            with col2:
-                                if st.button("Nej, behold spiller", key=f"cancel_{player['Name']}"):
+                        with col1:
+                            st.markdown(f"""
+                                <div class="player-card">
+                                    <div class="player-info">
+                                        <span class="player-name">{player['Name']}</span>
+                                        {f'<span class="player-stats">Bedste rolle: <span class="stat-highlight">{best_stat}</span></span>' if best_stat else ''}
+                                    </div>
+                                    
+                                </div>
+                            """, unsafe_allow_html=True)
+
+                        with col3:
+                            if st.button(f"Slet {player['Name']}", key=f"delete_{player['Name']}", type="secondary"):
+                                if dm.delete_player(player['Name'], current_user_id):
+                                    st.success(f"Spiller slettet: {player['Name']}")
                                     st.rerun()
             else:
                 st.info("Ingen spillere fundet")

@@ -70,16 +70,23 @@ class PostgresDataManager:
             print(f"Error getting players: {e}")
             return pd.DataFrame(columns=['Name', 'Position'])
 
-    def add_match_record(self, date, time, opponent, players_df, ratings):
+    def add_match_record(self, date, time, opponent, players_df, ratings, user_id=None):
         """Add match performance records for selected players"""
         try:
             with psycopg2.connect(self.conn_string) as conn:
                 with conn.cursor() as cur:
                     for _, player in players_df.iterrows():
                         player_name = player['Name']
-                        # Get player ID
-                        cur.execute("SELECT id FROM players WHERE name = %s", (player_name,))
-                        player_id = cur.fetchone()[0]
+                        # Get player ID ensuring it belongs to the correct user
+                        cur.execute("""
+                            SELECT id FROM players 
+                            WHERE name = %s AND user_id = %s
+                        """, (player_name, user_id))
+                        player_result = cur.fetchone()
+                        if not player_result:
+                            continue  # Skip if player not found or doesn't belong to user
+
+                        player_id = player_result[0]
 
                         # Insert match record
                         cur.execute("""
@@ -279,7 +286,8 @@ class PostgresDataManager:
                 match_date.time(),
                 opponent,
                 players_df[players_df['Name'].isin(test_players[:5])],
-                player_ratings
+                player_ratings,
+                username
             )
 
     def reset_data(self):
