@@ -47,6 +47,7 @@ def show_login_page():
             .stTextInput>div>div>input {
                 background-color: #262730;
                 color: #fafafa;
+                border: 1px solid #4a4a4a;
             }
         </style>
         """,
