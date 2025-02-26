@@ -20,48 +20,56 @@ class AuthDB:
         self.conn_string = os.environ['DATABASE_URL']
         self._initialize_tables()
 
+    def _get_connection(self):
+        """Create and return a new database connection"""
+        return psycopg2.connect(self.conn_string)
+
     def _initialize_tables(self):
         """Create necessary tables if they don't exist"""
-        with psycopg2.connect(self.conn_string) as conn:
-            with conn.cursor() as cur:
-                # Create roles table
-                cur.execute("""
-                    CREATE TABLE IF NOT EXISTS roles (
-                        id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-                        name VARCHAR(50) UNIQUE NOT NULL
-                    )
-                """)
-
-                # Create users table with user_id column
-                cur.execute("""
-                    CREATE TABLE IF NOT EXISTS users (
-                        id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-                        username VARCHAR(100) UNIQUE NOT NULL,
-                        password_hash VARCHAR(200) NOT NULL,
-                        email VARCHAR(100) UNIQUE NOT NULL,
-                        role_id INTEGER REFERENCES roles(id),
-                        status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'active', 'inactive')),
-                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                    )
-                """)
-
-                # Insert default roles if they don't exist
-                roles = ['admin', 'coach', 'assistant_coach', 'observer']
-                for role in roles:
+        try:
+            with self._get_connection() as conn:
+                with conn.cursor() as cur:
+                    # Create roles table
                     cur.execute("""
-                        INSERT INTO roles (name)
-                        VALUES (%s)
-                        ON CONFLICT (name) DO NOTHING
-                    """, (role,))
+                        CREATE TABLE IF NOT EXISTS roles (
+                            id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+                            name VARCHAR(50) UNIQUE NOT NULL
+                        )
+                    """)
 
-                conn.commit()
+                    # Create users table with user_id column
+                    cur.execute("""
+                        CREATE TABLE IF NOT EXISTS users (
+                            id INTEGER PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+                            username VARCHAR(100) UNIQUE NOT NULL,
+                            password_hash VARCHAR(200) NOT NULL,
+                            email VARCHAR(100) UNIQUE NOT NULL,
+                            role_id INTEGER REFERENCES roles(id),
+                            status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'active', 'inactive')),
+                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                        )
+                    """)
+
+                    # Insert default roles if they don't exist
+                    roles = ['admin', 'coach', 'assistant_coach', 'observer']
+                    for role in roles:
+                        cur.execute("""
+                            INSERT INTO roles (name)
+                            VALUES (%s)
+                            ON CONFLICT (name) DO NOTHING
+                        """, (role,))
+
+                    conn.commit()
+        except Exception as e:
+            print(f"Error initializing tables: {e}")
+            raise
 
     def create_user(self, username: str, password: str, email: str, role: str) -> bool:
         """Create a new user with active status"""
         try:
             password_hash = pwd_context.hash(password)
 
-            with psycopg2.connect(self.conn_string) as conn:
+            with self._get_connection() as conn:
                 with conn.cursor() as cur:
                     # Get role ID
                     cur.execute("SELECT id FROM roles WHERE name = %s", (role,))
@@ -78,7 +86,8 @@ class AuthDB:
                     conn.commit()
                     return True
 
-        except psycopg2.Error:
+        except psycopg2.Error as e:
+            print(f"Error creating user: {e}")
             return False
 
     def register_user(self, username: str, password: str, email: str, role: str) -> bool:
@@ -86,7 +95,7 @@ class AuthDB:
         try:
             password_hash = pwd_context.hash(password)
 
-            with psycopg2.connect(self.conn_string) as conn:
+            with self._get_connection() as conn:
                 with conn.cursor() as cur:
                     # Get role ID
                     cur.execute("SELECT id FROM roles WHERE name = %s", (role,))
@@ -103,13 +112,14 @@ class AuthDB:
                     conn.commit()
                     return True
 
-        except psycopg2.Error:
+        except psycopg2.Error as e:
+            print(f"Error registering user: {e}")
             return False
 
     def get_pending_users(self) -> List[Dict]:
         """Get list of users pending approval"""
         try:
-            with psycopg2.connect(self.conn_string) as conn:
+            with self._get_connection() as conn:
                 with conn.cursor(cursor_factory=DictCursor) as cur:
                     cur.execute("""
                         SELECT u.username, u.email, u.created_at, r.name as role_name
@@ -119,13 +129,14 @@ class AuthDB:
                         ORDER BY u.created_at DESC
                     """)
                     return [dict(row) for row in cur.fetchall()]
-        except psycopg2.Error:
+        except psycopg2.Error as e:
+            print(f"Error getting pending users: {e}")
             return []
 
     def approve_user(self, username: str) -> bool:
         """Approve a pending user"""
         try:
-            with psycopg2.connect(self.conn_string) as conn:
+            with self._get_connection() as conn:
                 with conn.cursor() as cur:
                     cur.execute("""
                         UPDATE users
@@ -134,13 +145,14 @@ class AuthDB:
                     """, (username,))
                     conn.commit()
                     return True
-        except psycopg2.Error:
+        except psycopg2.Error as e:
+            print(f"Error approving user: {e}")
             return False
 
     def reject_user(self, username: str) -> bool:
         """Reject a pending user"""
         try:
-            with psycopg2.connect(self.conn_string) as conn:
+            with self._get_connection() as conn:
                 with conn.cursor() as cur:
                     cur.execute("""
                         DELETE FROM users
@@ -148,13 +160,14 @@ class AuthDB:
                     """, (username,))
                     conn.commit()
                     return True
-        except psycopg2.Error:
+        except psycopg2.Error as e:
+            print(f"Error rejecting user: {e}")
             return False
 
     def verify_user(self, username: str, password: str) -> Optional[Dict]:
         """Verify user credentials and return user info if valid"""
         try:
-            with psycopg2.connect(self.conn_string) as conn:
+            with self._get_connection() as conn:
                 with conn.cursor(cursor_factory=DictCursor) as cur:
                     # Get user details including password hash
                     cur.execute("""
@@ -172,7 +185,8 @@ class AuthDB:
                         return user_dict
                     return None
 
-        except psycopg2.Error:
+        except psycopg2.Error as e:
+            print(f"Error verifying user: {e}")
             return None
 
     def create_access_token(self, data: dict) -> str:
@@ -187,13 +201,14 @@ class AuthDB:
         try:
             payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
             return payload
-        except JWTError:
+        except JWTError as e:
+            print(f"Error verifying token: {e}")
             return None
 
     def get_user_role(self, username: str) -> Optional[str]:
         """Get user's role"""
         try:
-            with psycopg2.connect(self.conn_string) as conn:
+            with self._get_connection() as conn:
                 with conn.cursor() as cur:
                     cur.execute("""
                         SELECT r.name
@@ -203,5 +218,6 @@ class AuthDB:
                     """, (username,))
                     role = cur.fetchone()
                     return role[0] if role else None
-        except psycopg2.Error:
+        except psycopg2.Error as e:
+            print(f"Error getting user role: {e}")
             return None

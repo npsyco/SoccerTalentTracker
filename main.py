@@ -16,10 +16,9 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Hide navigation elements
+# Hide only specific navigation elements
 st.markdown("""
     <style>
-        #MainMenu {visibility: hidden;}
         header {visibility: hidden;}
         footer {visibility: hidden;}
         section[data-testid="stSidebarNav"] {display: none;}
@@ -80,7 +79,6 @@ def main():
 
     st.title("Sorø-Freja Spiller Udviklingsværktøj")
 
-    # Show navigation and content based on page state
     if st.session_state.page == "Spillere":
         st.header("Spillere")
 
@@ -116,7 +114,7 @@ def main():
                 for _, player in players_df.iterrows():
                     best_stat, stat_value = get_player_best_stat(player['Name'], current_user_id)
 
-                    # Create container for player info and delete button
+                    # Container for player info and delete button
                     cols = st.columns([4, 1])
 
                     # Player info column
@@ -125,7 +123,7 @@ def main():
                         if best_stat:
                             st.caption(f"Bedste rolle: {best_stat} (Niveau {stat_value})")
 
-                    # Delete button column
+                    # Delete button column with confirmation
                     with cols[1]:
                         delete_key = f"delete_{player['Name']}"
 
@@ -133,7 +131,7 @@ def main():
                         if delete_key not in st.session_state:
                             st.session_state[delete_key] = False
 
-                        # Show either delete button or confirmation buttons
+                        # Show either delete button or confirmation
                         if not st.session_state[delete_key]:
                             if st.button("🗑️", key=f"delete_button_{player['Name']}", help="Slet spiller"):
                                 st.session_state[delete_key] = True
@@ -142,6 +140,7 @@ def main():
                             # More compact confirmation UI
                             st.caption("Slet? ✓/❌")
                             if st.button("✓", key=f"confirm_{player['Name']}", help="Ja, slet"):
+                                dm = DataManager()  # Create new instance to ensure fresh connection
                                 if dm.delete_player(player['Name'], current_user_id):
                                     st.success("Spiller slettet")
                                     st.session_state[delete_key] = False
