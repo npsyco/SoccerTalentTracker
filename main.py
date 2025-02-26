@@ -16,10 +16,9 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Hide only toolbar
+# Keep only minimal styling for secondary buttons
 st.markdown("""
     <style>
-        div[data-testid="stToolbar"] {display: none;}
         button[kind="secondary"] {
             float: right;
             margin-right: 10px;
@@ -53,8 +52,6 @@ def main():
         initialize_session_state()
         session_manager = SessionManager()
         create_initial_admin()
-
-        # Initialize DataManager before any view logic
         dm = DataManager()
     except Exception as e:
         st.error("Der opstod en fejl. Prøv venligst igen.")
@@ -101,7 +98,7 @@ def main():
                             else:
                                 if dm.add_player(player_name, "Not specified", current_user_id):
                                     st.success(f"Spiller tilføjet: {player_name}")
-                                    st.rerun()
+                                    st.experimental_rerun()
                                 else:
                                     st.error(f"Spiller '{player_name}' findes allerede")
                         else:
@@ -126,27 +123,9 @@ def main():
 
                     # Delete button column
                     with cols[1]:
-                        delete_key = f"delete_{player['Name']}"
-
-                        # Initialize session state if not exists
-                        if delete_key not in st.session_state:
-                            st.session_state[delete_key] = False
-
-                        # Show either delete button or confirmation
-                        if not st.session_state[delete_key]:
-                            if st.button("🗑️", key=f"delete_button_{player['Name']}", help="Slet spiller"):
-                                st.session_state[delete_key] = True
-                                st.rerun()
-                        else:
-                            st.warning(f"Er du sikker på at du vil slette {player['Name']}?")
-                            if st.button("Ja", key=f"confirm_{player['Name']}"):
-                                if dm.delete_player(player['Name'], current_user_id):
-                                    st.success("Spiller slettet")
-                                    st.session_state[delete_key] = False
-                                    st.rerun()
-                            if st.button("Nej", key=f"cancel_{player['Name']}"):
-                                st.session_state[delete_key] = False
-                                st.rerun()
+                        if st.button("🗑️", key=f"delete_{player['Name']}", help="Slet spiller"):
+                            dm.delete_player(player['Name'], current_user_id)
+                            st.experimental_rerun()
             else:
                 st.info("Ingen spillere fundet")
 
